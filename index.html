@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ΚΙΝΟ Έλεγχος</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ΚΙΝΟ">
+<meta name="theme-color" content="#0f3d2e">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{
+    --bg:#f4f6f5; --card:#fff; --ink:#15211c; --muted:#66756e; --line:#dfe5e2;
+    --brand:#0f3d2e; --brand2:#1d6b4f; --hit:#f2b705; --hitInk:#3a2c00; --danger:#b3261e;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0d1311; --card:#17201c; --ink:#e8efeb; --muted:#93a39b; --line:#2a3631;
+      --brand:#0f3d2e; --brand2:#2f8f6a; }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{background:var(--brand); color:#fff; padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;
+    position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:10px}
+  header h1{font-size:19px; margin:0; flex:1}
+  header button{background:rgba(255,255,255,.15); color:#fff; border:0; border-radius:10px; padding:8px 12px; font-size:15px}
+  main{padding:12px 12px calc(env(safe-area-inset-bottom) + 90px); max-width:640px; margin:0 auto}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px}
+  .row{display:flex; align-items:center; gap:8px}
+  .muted{color:var(--muted); font-size:14px}
+  .balls{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .ball{width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-weight:600; font-size:14px;
+    background:var(--bg); border:1px solid var(--line)}
+  .ball.hit{background:var(--hit); color:var(--hitInk); border-color:var(--hit)}
+  .ball.bonus{outline:2px solid var(--danger); outline-offset:1px}
+  .btn{border:0; border-radius:12px; padding:12px 16px; font-size:16px; font-weight:600; background:var(--brand2); color:#fff}
+  .btn.secondary{background:var(--bg); color:var(--ink); border:1px solid var(--line)}
+  .btn.danger{background:transparent; color:var(--danger); border:1px solid var(--line)}
+  .btn.small{padding:7px 11px; font-size:14px; font-weight:500}
+  .btn:disabled{opacity:.5}
+  .fab{position:fixed; right:16px; bottom:calc(env(safe-area-inset-bottom) + 16px); z-index:6;
+    border-radius:999px; padding:14px 20px; box-shadow:0 4px 14px rgba(0,0,0,.25)}
+  .tabs{display:flex; gap:6px; margin-bottom:12px}
+  .tabs button{flex:1; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:15px}
+  .tabs button.on{background:var(--brand2); color:#fff; border-color:var(--brand2)}
+  .badge{display:inline-block; padding:2px 9px; border-radius:999px; font-size:13px; font-weight:600; background:var(--bg); border:1px solid var(--line)}
+  .badge.good{background:var(--hit); color:var(--hitInk); border-color:var(--hit)}
+  .grid{display:grid; grid-template-columns:repeat(10,1fr); gap:5px; margin:10px 0}
+  .grid button{aspect-ratio:1; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-size:14px; font-weight:600; padding:0}
+  .grid button.sel{background:var(--brand2); color:#fff; border-color:var(--brand2)}
+  input[type=text],input[type=number],select,textarea{width:100%; font-size:16px; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink)}
+  textarea{min-height:110px; font-family:ui-monospace,Menlo,monospace; font-size:13px}
+  label{display:block; font-size:14px; color:var(--muted); margin:10px 0 4px}
+  .sheet{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:20; display:none; align-items:flex-end; justify-content:center}
+  .sheet.open{display:flex}
+  .sheet .panel{background:var(--card); width:100%; max-width:640px; max-height:92vh; overflow:auto; border-radius:18px 18px 0 0;
+    padding:16px 16px calc(env(safe-area-inset-bottom) + 16px)}
+  .sheet h2{margin:0 0 6px; font-size:18px}
+  .status{padding:10px 12px; border-radius:10px; margin-bottom:12px; font-size:14px; display:none}
+  .status.show{display:block}
+  .status.err{background:#fde8e6; color:#7a1b14}
+  .status.ok{background:#e4f4ec; color:#0f3d2e}
+  .drawline{padding:10px 0; border-top:1px solid var(--line)}
+  .drawline:first-child{border-top:0}
+  .empty{text-align:center; padding:30px 10px; color:var(--muted)}
+  details summary{cursor:pointer; color:var(--muted); font-size:14px; margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ΚΙΝΟ Έλεγχος</h1>
+  <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
+</header>
+
+<main>
+  <div id="status" class="status"></div>
+
+  <div class="tabs">
+    <button data-tab="tickets" class="on">Δελτία</button>
+    <button data-tab="check">Έλεγχος</button>
+    <button data-tab="draws">Κληρώσεις</button>
+  </div>
+
+  <!-- ΔΕΛΤΙΑ -->
+  <section id="tab-tickets"></section>
+
+  <!-- ΕΛΕΓΧΟΣ -->
+  <section id="tab-check" hidden>
+    <div class="card">
+      <label for="range">Κληρώσεις για έλεγχο</label>
+      <select id="range">
+        <option value="last:1">Τελευταία κλήρωση</option>
+        <option value="last:10">Τελευταίες 10</option>
+        <option value="last:50" selected>Τελευταίες 50</option>
+        <option value="today">Όλες της σημερινής ημέρας</option>
+        <option value="date">Συγκεκριμένη ημερομηνία…</option>
+      </select>
+      <div id="dateWrap" hidden>
+        <label for="date">Ημερομηνία</label>
+        <input type="date" id="date">
+      </div>
+      <label class="row" style="color:var(--ink);margin-top:12px">
+        <input type="checkbox" id="onlyWins" checked style="width:20px;height:20px"> Δείξε μόνο κληρώσεις με επιτυχίες
+      </label>
+      <div style="margin-top:12px"><button class="btn" id="btnCheck" style="width:100%">Έλεγχος δελτίων</button></div>
+    </div>
+    <div id="results"></div>
+  </section>
+
+  <!-- ΚΛΗΡΩΣΕΙΣ -->
+  <section id="tab-draws" hidden>
+    <div class="card row">
+      <div style="flex:1" class="muted">Οι πιο πρόσφατες κληρώσεις</div>
+      <button class="btn small" id="btnReload">Ανανέωση</button>
+    </div>
+    <div id="drawsList"></div>
+  </section>
+</main>
+
+<button class="btn fab" id="btnAdd">＋ Νέο δελτίο</button>
+
+<!-- Φόρμα δελτίου -->
+<div class="sheet" id="ticketSheet">
+  <div class="panel">
+    <h2 id="ticketTitle">Νέο δελτίο</h2>
+    <div class="muted">Διάλεξε από 1 έως 12 αριθμούς (1–80).</div>
+    <label for="tName">Όνομα (προαιρετικό)</label>
+    <input type="text" id="tName" placeholder="π.χ. Τα σταθερά μου">
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1"><span id="selCount" class="badge">0 / 12</span></div>
+      <button class="btn small secondary" id="btnRandom">Τυχαίοι</button>
+      <button class="btn small secondary" id="btnClear">Καθαρισμός</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="row">
+      <button class="btn danger" id="btnDelete" hidden>Διαγραφή</button>
+      <div style="flex:1"></div>
+      <button class="btn secondary" id="btnCancel">Άκυρο</button>
+      <button class="btn" id="btnSave">Αποθήκευση</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ρυθμίσεις -->
+<div class="sheet" id="settingsSheet">
+  <div class="panel">
+    <h2>Ρυθμίσεις</h2>
+    <label for="apiBase">Διεύθυνση API κληρώσεων</label>
+    <input type="text" id="apiBase" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="muted" style="margin-top:6px">Προεπιλογή: <code>https://api.opap.gr</code>. Αν οι κληρώσεις δεν φορτώνουν, βάλε εδώ τη διεύθυνση του Cloudflare Worker σου (δες README).</div>
+    <div class="row" style="margin-top:10px"><button class="btn small secondary" id="btnResetApi">Επαναφορά προεπιλογής</button></div>
+
+    <label>Αντίγραφο ασφαλείας δελτίων</label>
+    <textarea id="backup" placeholder='Πάτα «Εξαγωγή» για να πάρεις τα δελτία σου ως κείμενο, ή επικόλλησε εδώ κείμενο και πάτα «Εισαγωγή».'></textarea>
+    <div class="row" style="margin-top:8px; flex-wrap:wrap">
+      <button class="btn small secondary" id="btnExport">Εξαγωγή</button>
+      <button class="btn small secondary" id="btnCopy">Αντιγραφή</button>
+      <button class="btn small secondary" id="btnImport">Εισαγωγή</button>
+    </div>
+    <div style="margin-top:16px; text-align:right"><button class="btn" id="btnCloseSettings">Κλείσιμο</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const GAME_KINO = 1100;
+  const DEFAULT_API = 'https://api.opap.gr';
+  const MAX_PICK = 12, MAX_NUM = 80;
+  const LS_TICKETS = 'kino.tickets.v1', LS_API = 'kino.api.v1';
+
+  const $ = s => document.querySelector(s);
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch{ return d; } },
+    set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch{ return false; } }
+  };
+
+  let tickets = store.get(LS_TICKETS, []);
+  let apiBase = store.get(LS_API, DEFAULT_API);
+  let editing = null;        // id του δελτίου που επεξεργαζόμαστε
+  let picked = new Set();
+
+  // ---------- Βοηθητικά ----------
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  const sortNums = a => [...a].sort((x,y) => x-y);
+  const fmtTime = ms => new Date(ms).toLocaleString('el-GR', {timeZone:'Europe/Athens', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+  const athensDate = (d = new Date()) => new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Athens'}).format(d); // YYYY-MM-DD
+
+  function status(msg, kind = 'ok'){
+    const el = $('#status');
+    if(!msg){ el.className = 'status'; el.textContent = ''; return; }
+    el.className = 'status show ' + kind; el.textContent = msg;
+  }
+  function saveTickets(){
+    if(!store.set(LS_TICKETS, tickets)) status('Δεν ήταν δυνατή η αποθήκευση στη συσκευή.', 'err');
+  }
+  function ballsHtml(nums, hits, bonus){
+    return '<div class="balls">' + nums.map(n =>
+      `<span class="ball${hits && hits.has(n) ? ' hit' : ''}${bonus === n ? ' bonus' : ''}">${n}</span>`).join('') + '</div>';
+  }
+
+  // ---------- Tabs ----------
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    ['tickets','check','draws'].forEach(t => $('#tab-' + t).hidden = (t !== b.dataset.tab));
+    $('#btnAdd').hidden = b.dataset.tab !== 'tickets';
+    status('');
+    if(b.dataset.tab === 'draws' && !$('#drawsList').dataset.loaded) loadRecent();
+  }));
+
+  // ---------- Δελτία ----------
+  function renderTickets(){
+    const el = $('#tab-tickets');
+    if(!tickets.length){
+      el.innerHTML = '<div class="card empty">Δεν έχεις αποθηκευμένα δελτία.<br>Πάτα «＋ Νέο δελτίο» για να προσθέσεις.</div>';
+      return;
+    }
+    el.innerHTML = tickets.map(t => `
+      <div class="card" data-id="${t.id}">
+        <div class="row">
+          <strong style="flex:1">${esc(t.name || 'Δελτίο')}</strong>
+          <span class="badge">${t.nums.length} αριθμ.</span>
+          <button class="btn small secondary" data-edit="${t.id}">Επεξ.</button>
+        </div>
+        ${ballsHtml(sortNums(t.nums))}
+      </div>`).join('');
+    el.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openTicket(b.dataset.edit)));
+  }
+
+  function buildGrid(){
+    const g = $('#grid'); g.innerHTML = '';
+    for(let n = 1; n <= MAX_NUM; n++){
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = n; b.dataset.n = n;
+      b.addEventListener('click', () => {
+        if(picked.has(n)) picked.delete(n);
+        else if(picked.size < MAX_PICK) picked.add(n);
+        else { flashCount(); return; }
+        refreshGrid();
+      });
+      g.appendChild(b);
+    }
+  }
+  function refreshGrid(){
+    $('#grid').querySelectorAll('button').forEach(b => b.classList.toggle('sel', picked.has(+b.dataset.n)));
+    $('#selCount').textContent = `${picked.size} / ${MAX_PICK}`;
+    $('#selCount').classList.toggle('good', picked.size > 0);
+    $('#btnSave').disabled = picked.size === 0;
+  }
+  function flashCount(){
+    const c = $('#selCount'); c.style.background = 'var(--danger)'; c.style.color = '#fff';
+    setTimeout(() => { c.style.background = ''; c.style.color = ''; }, 500);
+  }
+  function openTicket(id){
+    editing = id || null;
+    const t = id ? tickets.find(x => x.id === id) : null;
+    picked = new Set(t ? t.nums : []);
+    $('#tName').value = t ? (t.name || '') : '';
+    $('#ticketTitle').textContent = t ? 'Επεξεργασία δελτίου' : 'Νέο δελτίο';
+    $('#btnDelete').hidden = !t;
+    refreshGrid();
+    $('#ticketSheet').classList.add('open');
+  }
+  const closeTicket = () => $('#ticketSheet').classList.remove('open');
+
+  $('#btnAdd').addEventListener('click', () => openTicket(null));
+  $('#btnCancel').addEventListener('click', closeTicket);
+  $('#btnClear').addEventListener('click', () => { picked.clear(); refreshGrid(); });
+  $('#btnRandom').addEventListener('click', () => {
+    const k = picked.size || 5; picked.clear();
+    while(picked.size < k) picked.add(1 + Math.floor(Math.random() * MAX_NUM));
+    refreshGrid();
+  });
+  $('#btnSave').addEventListener('click', () => {
+    if(!picked.size) return;
+    const data = { name: $('#tName').value.trim(), nums: sortNums(picked) };
+    if(editing){ Object.assign(tickets.find(x => x.id === editing), data); }
+    else tickets.push({ id: uid(), ...data });
+    saveTickets(); renderTickets(); closeTicket();
+  });
+  let delArmed = false;
+  $('#btnDelete').addEventListener('click', e => {
+    if(!delArmed){ delArmed = true; e.target.textContent = 'Σίγουρα;'; setTimeout(() => { delArmed = false; e.target.textContent = 'Διαγραφή'; }, 3000); return; }
+    delArmed = false; e.target.textContent = 'Διαγραφή';
+    tickets = tickets.filter(x => x.id !== editing);
+    saveTickets(); renderTickets(); closeTicket();
+  });
+
+  // ---------- API Allwyn (ΟΠΑΠ) ----------
+  async function apiGet(path){
+    const url = apiBase.replace(/\/+$/, '') + path;
+    let res;
+    try { res = await fetch(url, { headers: { 'Accept': 'application/json' } }); }
+    catch(e){
+      throw new Error('Δεν ήταν δυνατή η σύνδεση με το API κληρώσεων. Αν έχεις internet, μάλλον το API δεν επιτρέπει κλήσεις από browser — βάλε τη διεύθυνση του Cloudflare Worker στις Ρυθμίσεις (⚙︎).');
+    }
+    if(!res.ok) throw new Error(`Το API απάντησε με σφάλμα ${res.status}.`);
+    return res.json();
+  }
+  // Μετατρέπει μια κλήρωση από το API σε {id, time, nums[], bonus}
+  function normDraw(d){
+    if(!d) return null;
+    const wn = d.winningNumbers || {};
+    const list = (wn.list || wn.numbers || []).map(Number).filter(n => n >= 1 && n <= MAX_NUM);
+    if(!list.length) return null;
+    const bonus = Array.isArray(wn.bonus) && wn.bonus.length ? Number(wn.bonus[0]) : null;
+    return { id: d.drawId, time: d.drawTime, nums: sortNums(list), bonus };
+  }
+  async function fetchLast(){
+    const j = await apiGet(`/draws/v3.0/${GAME_KINO}/last-result-and-active`);
+    return normDraw(j.last);
+  }
+  async function fetchById(id){
+    return normDraw(await apiGet(`/draws/v3.0/${GAME_KINO}/${id}`));
+  }
+  async function fetchByDate(ymd){
+    const out = [];
+    for(let page = 0; page < 5; page++){
+      const j = await apiGet(`/draws/v3.0/${GAME_KINO}/draw-date/${ymd}/${ymd}?limit=200&page=${page}`);
+      const items = Array.isArray(j) ? j : (j.content || []);
+      items.forEach(d => { const n = normDraw(d); if(n) out.push(n); });
+      if(Array.isArray(j) || j.last || !j.totalPages || page + 1 >= j.totalPages) break;
+    }
+    return out.sort((a,b) => b.id - a.id);
+  }
+  // Τελευταίες N κληρώσεις: παίρνει τη σημερινή μέρα (και τη χθεσινή αν χρειάζεται)
+  async function fetchLastN(n){
+    if(n === 1){ const d = await fetchLast(); return d ? [d] : []; }
+    let draws = await fetchByDate(athensDate());
+    if(draws.length < n){
+      const y = new Date(Date.now() - 864e5);
+      draws = draws.concat(await fetchByDate(athensDate(y)));
+    }
+    if(!draws.length){ const d = await fetchLast(); if(d) draws = [d]; }
+    return draws.slice(0, n);
+  }
+
+  // ---------- Έλεγχος ----------
+  $('#range').addEventListener('change', e => { $('#dateWrap').hidden = e.target.value !== 'date'; });
+  $('#date').value = athensDate();
+
+  $('#btnCheck').addEventListener('click', async () => {
+    if(!tickets.length){ status('Πρόσθεσε πρώτα ένα δελτίο.', 'err'); return; }
+    const btn = $('#btnCheck'); btn.disabled = true; btn.textContent = 'Φόρτωση κληρώσεων…';
+    status(''); $('#results').innerHTML = '';
+    try{
+      const r = $('#range').value;
+      let draws;
+      if(r.startsWith('last:')) draws = await fetchLastN(+r.split(':')[1]);
+      else if(r === 'today') draws = await fetchByDate(athensDate());
+      else draws = await fetchByDate($('#date').value);
+      if(!draws.length){ status('Δεν βρέθηκαν κληρώσεις για αυτή την επιλογή.', 'err'); return; }
+      renderResults(draws);
+    }catch(e){ status(e.message, 'err'); }
+    finally{ btn.disabled = false; btn.textContent = 'Έλεγχος δελτίων'; }
+  });
+
+  function renderResults(draws){
+    const onlyWins = $('#onlyWins').checked;
+    const first = draws[draws.length - 1], last = draws[0];
+    let html = `<div class="muted" style="margin:0 4px 10px">Ελέγχθηκαν ${draws.length} κληρώσεις` +
+      (draws.length > 1 ? ` (αρ. ${first.id} – ${last.id})` : ` (αρ. ${last.id}, ${fmtTime(last.time)})`) + '</div>';
+
+    tickets.forEach(t => {
+      const rows = draws.map(d => {
+        const win = new Set(d.nums);
+        const hits = new Set(t.nums.filter(n => win.has(n)));
+        return { d, hits, bonusHit: d.bonus != null && t.nums.includes(d.bonus) };
+      });
+      const best = Math.max(...rows.map(x => x.hits.size));
+      const shown = onlyWins ? rows.filter(x => x.hits.size > 0) : rows;
+      html += `<div class="card">
+        <div class="row"><strong style="flex:1">${esc(t.name || 'Δελτίο')}</strong>
+          <span class="badge${best > 0 ? ' good' : ''}">Καλύτερο: ${best}/${t.nums.length}</span></div>
+        ${ballsHtml(sortNums(t.nums))}
+        ${shown.length ? '<div style="margin-top:10px">' + shown.slice(0, 100).map(x => `
+          <div class="drawline">
+            <div class="row"><span style="flex:1" class="muted">Κλήρωση ${x.d.id} · ${fmtTime(x.d.time)}</span>
+              <span class="badge${x.hits.size ? ' good' : ''}">${x.hits.size}/${t.nums.length}</span></div>
+            ${x.bonusHit ? '<div class="muted" style="color:var(--danger)">Πέτυχες και το ΚΙΝΟ Bonus (' + x.d.bonus + ')</div>' : ''}
+            ${ballsHtml(x.d.nums, x.hits, x.d.bonus)}
+          </div>`).join('') + '</div>'
+          : '<div class="muted" style="margin-top:8px">Καμία επιτυχία σε αυτές τις κληρώσεις.</div>'}
+      </div>`;
+    });
+    $('#results').innerHTML = html;
+  }
+
+  // ---------- Πρόσφατες κληρώσεις ----------
+  async function loadRecent(){
+    const el = $('#drawsList');
+    el.innerHTML = '<div class="card empty">Φόρτωση…</div>';
+    try{
+      const draws = await fetchLastN(20);
+      el.dataset.loaded = '1';
+      el.innerHTML = '<div class="card">' + draws.map(d => `
+        <div class="drawline"><div class="muted">Κλήρωση ${d.id} · ${fmtTime(d.time)}${d.bonus != null ? ' · Bonus: ' + d.bonus : ''}</div>
+        ${ballsHtml(d.nums, null, d.bonus)}</div>`).join('') + '</div>';
+    }catch(e){ el.innerHTML = ''; status(e.message, 'err'); }
+  }
+  $('#btnReload').addEventListener('click', loadRecent);
+
+  // ---------- Ρυθμίσεις ----------
+  $('#btnSettings').addEventListener('click', () => { $('#apiBase').value = apiBase; $('#backup').value = ''; $('#settingsSheet').classList.add('open'); });
+  $('#btnCloseSettings').addEventListener('click', () => {
+    const v = $('#apiBase').value.trim() || DEFAULT_API;
+    if(v !== apiBase){ apiBase = v; store.set(LS_API, apiBase); delete $('#drawsList').dataset.loaded; }
+    $('#settingsSheet').classList.remove('open');
+  });
+  $('#btnResetApi').addEventListener('click', () => { $('#apiBase').value = DEFAULT_API; });
+  $('#btnExport').addEventListener('click', () => { $('#backup').value = JSON.stringify(tickets); });
+  $('#btnCopy').addEventListener('click', async () => {
+    const ta = $('#backup'); if(!ta.value) ta.value = JSON.stringify(tickets);
+    try{ await navigator.clipboard.writeText(ta.value); $('#btnCopy').textContent = 'Αντιγράφηκε ✓'; }
+    catch{ ta.select(); $('#btnCopy').textContent = 'Επίλεξε & αντίγραψε'; }
+    setTimeout(() => $('#btnCopy').textContent = 'Αντιγραφή', 2000);
+  });
+  $('#btnImport').addEventListener('click', () => {
+    try{
+      const data = JSON.parse($('#backup').value);
+      if(!Array.isArray(data)) throw 0;
+      const clean = data.map(t => ({
+        id: t.id || uid(), name: String(t.name || ''),
+        nums: sortNums(new Set((t.nums || t).map(Number).filter(n => n >= 1 && n <= MAX_NUM))).slice(0, MAX_PICK)
+      })).filter(t => t.nums.length);
+      tickets = clean; saveTickets(); renderTickets();
+      $('#btnImport').textContent = `Εισήχθησαν ${clean.length} ✓`;
+    }catch{ $('#btnImport').textContent = 'Μη έγκυρο κείμενο'; }
+    setTimeout(() => $('#btnImport').textContent = 'Εισαγωγή', 2500);
+  });
+
+  // κλείσιμο φύλλων με πάτημα έξω
+  document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => { if(e.target === s) s.classList.remove('open'); }));
+
+  buildGrid(); renderTickets();
+})();
+</script>
+</body>
+</html>
