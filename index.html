@@ -157,8 +157,7 @@
         <option value="D">Δ – 90 εξάδες · 6 από 20 → ≥ 4/6</option>
       </select>
       <div class="row" style="margin-top:8px">
-        <div style="flex:1"><label for="sxMax">Μέγιστες κληρώσεις</label><input type="number" id="sxMax" min="1" max="50" value="10"></div>
-        <label class="row" style="flex:1;color:var(--ink);margin-top:28px"><input type="checkbox" id="sxStop" checked style="width:20px;height:20px"> Στοπ στο σπάσιμο</label>
+        <div style="flex:1"><label for="sxMax">Κληρώσεις παρακολούθησης (τουλάχιστον 10)</label><input type="number" id="sxMax" min="10" max="100" value="10"></div>
       </div>
       <div class="muted" id="sxCost" style="margin-top:6px"></div>
       <div id="sxList" style="margin-top:8px"></div>
@@ -519,7 +518,7 @@
   let latestId = 0, sxSel = null, sxTimer = null, sxBusy = false;
 
   $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; $('#sxSys').value = sxSet.sys;
-  $('#sxMax').value = sxSet.max; $('#sxStop').checked = sxSet.stop;
+  $('#sxMax').value = Math.max(10, sxSet.max);
   const payIds = ['pp0', 'pp3', 'pp4', 'pp5', 'pp6'];
   const payVals = () => [pay.price, pay.p[3], pay.p[4], pay.p[5], pay.p[6]];
   payIds.forEach((id, i) => { $('#' + id).value = payVals()[i]; $('#' + id).addEventListener('change', () => {
@@ -528,11 +527,11 @@
   }); });
   function saveSx(){
     Object.assign(sxSet, { thr: +$('#sxThr').value || 7, common: +$('#sxCommon').value || 6, sys: $('#sxSys').value,
-      max: Math.max(1, +$('#sxMax').value || 10), stop: $('#sxStop').checked });
+      max: Math.max(10, +$('#sxMax').value || 10) });
     store.set(LS_SXSET, sxSet);
   }
   ['sxThr', 'sxCommon'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderDelays(); renderTracks(); }));
-  ['sxSys', 'sxMax', 'sxStop'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
+  ['sxSys', 'sxMax'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
 
   const common = (a, b) => { const s = new Set(b); let c = 0; for (const x of a) if (s.has(x)) c++; return c; };
   const eur = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2).replace('.', ',') + '€';
@@ -550,7 +549,7 @@
       latestId = Math.max(latestId, ...draws.map(d => d.id));
       // κληρώσεις που λείπουν για τις παρακολουθήσεις (π.χ. από παλαιότερες μέρες)
       for (const t of tracks){
-        for (let id = t.startAfter + 1; id <= Math.min(latestId, t.startAfter + t.max); id++){
+        for (let id = t.startAfter + 1; id <= Math.min(latestId, t.startAfter + Math.max(10, t.max)); id++){
           if (!cache.has(id)){ try{ const d = await fetchById(id); if (d) cache.set(d.id, d); }catch(e){} }
         }
       }
@@ -610,7 +609,7 @@
     if (!sxSel) return;
     const d = sxSel.draw;
     tracks.unshift({ id: uid(), src: d.id, srcTime: d.time, order: d.order, sys: sxSet.sys, startAfter: latestId,
-      max: sxSet.max, stop: sxSet.stop, common: sxSet.common, created: Date.now() });
+      max: Math.max(10, sxSet.max), common: sxSet.common, created: Date.now() });
     store.set(LS_TRACK, tracks); renderTracks();
     status(`Η κλήρωση ${d.id} μπήκε σε παρακολούθηση (σύστημα ${SYSNAME[sxSet.sys]}) από την κλήρωση ${latestId + 1}.`, 'ok');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -618,17 +617,19 @@
 
   function evalTrack(t){
     const sx = makeSixes(t.order, t.sys), cost1 = sx.length * pay.price, rows = [];
+    const max = Math.max(10, t.max);
     let state = 'Σε αναμονή της κλήρωσης ' + (t.startAfter + 1);
-    for (let id = t.startAfter + 1; id <= t.startAfter + t.max; id++){
+    for (let id = t.startAfter + 1; id <= t.startAfter + max; id++){
       const d = cache.get(id); if (!d) break;
       const S = new Set(d.nums), hits = sx.map(s => s.filter(x => S.has(x)).length);
       const win = hits.reduce((a, h) => a + pay.p[h], 0), c = common(t.order, d.nums);
       rows.push({ d, hits, win, c, best: Math.max(...hits) });
-      if (t.stop && c >= t.common){ state = `Σταμάτησε: σπάσιμο με ${c} κοινά`; break; }
     }
-    if (rows.length && !state.startsWith('Σταμ')) state = rows.length >= t.max ? 'Ολοκληρώθηκε' : `Ενεργή · ${rows.length}/${t.max}`;
+    const brk = rows.filter(r => r.c >= t.common).length;
+    if (rows.length) state = (rows.length >= max ? 'Ολοκληρώθηκε' : `Ενεργή · ${rows.length}/${max}`) +
+      (brk ? ` · σπάσιμο (${t.common}+ κοινά) σε ${brk} ${brk > 1 ? 'κληρώσεις' : 'κλήρωση'}` : '');
     const won = rows.reduce((a, r) => a + r.win, 0), cost = rows.length * cost1;
-    return { sx, rows, won, cost, state, done: state.startsWith('Σταμ') || state === 'Ολοκληρώθηκε' };
+    return { sx, rows, won, cost, state, max, done: rows.length >= max };
   }
   function renderTracks(){
     const el = $('#sxTracks');
@@ -641,7 +642,7 @@
           <span class="badge${e.done ? '' : ' good'}">${e.done ? 'Τέλος' : 'Ενεργή'}</span></div>
         <div class="muted">${e.state}</div>
         <div class="stats">
-          <div>Κληρώσεις<b>${e.rows.length}/${t.max}</b></div>
+          <div>Κληρώσεις<b>${e.rows.length}/${e.max}</b></div>
           <div>Κόστος<b>${eur(e.cost)}</b></div>
           <div>Κέρδη<b>${eur(e.won)}</b></div>
           <div>Καθαρό<b class="${net >= 0 ? 'pos' : 'neg'}">${eur(net)}</b></div>
