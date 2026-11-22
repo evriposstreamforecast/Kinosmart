@@ -8,6 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ΚΙΝΟ">
+<!-- έκδοση 2026-11-22c -->
 <meta name="theme-color" content="#0f3d2e">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -93,7 +94,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος</h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v3</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -148,6 +149,9 @@
         <div style="flex:1"><label for="sxThr">Όριο καθυστέρησης</label><input type="number" id="sxThr" min="1" value="7"></div>
         <div style="flex:1"><label for="sxCommon">Κοινά για «σπάσιμο»</label><input type="number" id="sxCommon" min="1" max="20" value="6"></div>
       </div>
+      <label>Σύστημα</label>
+      <div class="seg" id="sxSysBtns"></div>
+      <div class="muted" id="sxSysDesc" style="margin-top:6px"></div>
       <div class="muted" id="sxInfo" style="margin-top:8px"></div>
       <table class="t" id="sxDelays" style="margin-top:6px"></table>
     </div>
@@ -155,9 +159,6 @@
     <div class="card" id="sxGen" hidden>
       <strong id="sxGenTitle">Εξάδες</strong>
       <div class="muted" id="sxSrc"></div>
-      <label>Σύστημα</label>
-      <div class="seg" id="sxSysBtns"></div>
-      <div class="muted" id="sxSysDesc" style="margin-top:6px"></div>
       <div class="row" style="margin-top:8px">
         <div style="flex:1"><label for="sxMax">Κληρώσεις παρακολούθησης (τουλάχιστον 10)</label><input type="number" id="sxMax" min="10" max="100" value="10"></div>
       </div>
