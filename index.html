@@ -66,6 +66,14 @@
   .status.err{background:#fde8e6; color:#7a1b14}
   .status.ok{background:#e4f4ec; color:#0f3d2e}
   .drawline{padding:10px 0; border-top:1px solid var(--line)}
+  .board{display:grid; grid-template-columns:repeat(10,1fr); gap:3px; margin-top:8px; max-width:420px}
+  .board span{aspect-ratio:1; display:grid; place-items:center; border-radius:50%; font-size:12px; font-weight:600; color:var(--muted); border:1px solid var(--line)}
+  .board span.d{background:#f2c200; color:#3a2c00; border-color:#f2c200}
+  .board span.b{background:#d32f2f; color:#fff; border-color:#d32f2f}
+  .board span.s{background:#2e9e4f; color:#fff; border-color:#2e9e4f}
+  .board span.s.d{box-shadow:inset 0 0 0 3px #f2c200}
+  .legend{display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:6px}
+  .legend i{display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:4px; vertical-align:-1px}
   .drawline:first-child{border-top:0}
   .empty{text-align:center; padding:30px 10px; color:var(--muted)}
   details summary{cursor:pointer; color:var(--muted); font-size:14px; margin-top:8px}
@@ -94,7 +102,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v6</span></h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v7</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -105,7 +113,7 @@
     <button data-tab="tickets" class="on">Δελτία</button>
     <button data-tab="check">Έλεγχος</button>
     <button data-tab="draws">Κληρώσεις</button>
-    <button data-tab="sixes">Εξάδες</button>
+    <button data-tab="sixes">Προτάσεις</button>
   </div>
 
   <!-- ΔΕΛΤΙΑ -->
@@ -398,7 +406,23 @@
     const list = (wn.list || wn.numbers || []).map(Number).filter(n => n >= 1 && n <= MAX_NUM);
     if(!list.length) return null;
     const bonus = Array.isArray(wn.bonus) && wn.bonus.length ? Number(wn.bonus[0]) : null;
-    return { id: d.drawId, time: d.drawTime, nums: sortNums(list), order: list.slice(0, 20), bonus };
+    return { id: d.drawId, time: d.drawTime, nums: sortNums(list), order: list.slice(0, 20), bonus, second: findSecond(d),
+      keys: Object.keys(d).concat(Object.keys(wn).map(k => 'winningNumbers.' + k)) };
+  }
+  // 2η ευκαιρία: ψάχνει πεδίο με όνομα σαν second/chance/extra που περιέχει 3 νούμερα 1–80
+  function findSecond(obj, depth = 0, keyHit = false){
+    if (!obj || typeof obj !== 'object' || depth > 4) return null;
+    if (Array.isArray(obj)){
+      const nums = obj.map(Number);
+      if (keyHit && nums.length === 3 && nums.every(n => Number.isInteger(n) && n >= 1 && n <= MAX_NUM)) return nums;
+      for (const v of obj){ const r = findSecond(v, depth + 1, keyHit); if (r) return r; }
+      return null;
+    }
+    for (const [k, v] of Object.entries(obj)){
+      const hit = keyHit || /second|chance|extra|2nd|ευκαιρ/i.test(k);
+      const r = findSecond(v, depth + 1, hit); if (r) return r;
+    }
+    return null;
   }
   async function fetchLast(){
     const j = await apiGet(`/draws/v3.0/${GAME_KINO}/last-result-and-active`);
@@ -487,10 +511,22 @@
     try{
       const draws = await fetchLastN(20);
       el.dataset.loaded = '1';
-      el.innerHTML = '<div class="card">' + draws.map(d => `
-        <div class="drawline"><div class="muted">Κλήρωση ${d.id} · ${fmtTime(d.time)}${d.bonus != null ? ' · Bonus: ' + d.bonus : ''}</div>
-        ${ballsHtml(d.nums, null, d.bonus)}</div>`).join('') + '</div>';
+      const anySecond = draws.some(d => d.second);
+      el.innerHTML = '<div class="card"><div class="legend" style="margin-top:0"><span><i style="background:#f2c200"></i>Κληρωθέντα</span><span><i style="background:#d32f2f"></i>KINO Bonus</span><span><i style="background:#2e9e4f"></i>2η ευκαιρία</span></div>' +
+        (anySecond ? '' : `<div class="muted" style="margin-top:6px;font-size:12px">Τα νούμερα της 2ης ευκαιρίας δεν βρέθηκαν στα δεδομένα του API. Πεδία που δίνει: ${esc((draws[0] && draws[0].keys || []).join(', '))}</div>`) +
+        draws.map(d => `
+        <div class="drawline"><div class="muted">Κλήρωση ${d.id} · ${fmtTime(d.time)}${d.bonus != null ? ' · Bonus: <b style="color:#d32f2f">' + d.bonus + '</b>' : ''}${d.second ? ' · 2η ευκαιρία: <b style="color:#2e9e4f">' + d.second.join(' ') + '</b>' : ''}</div>
+        ${boardHtml(d)}</div>`).join('') + '</div>';
     }catch(e){ el.innerHTML = ''; status(e.message, 'err'); }
+  }
+  function boardHtml(d){
+    const S = new Set(d.nums), X = new Set(d.second || []);
+    let out = '<div class="board">';
+    for (let n = 1; n <= MAX_NUM; n++){
+      const cls = n === d.bonus ? 'b' : X.has(n) ? ('s' + (S.has(n) ? ' d' : '')) : S.has(n) ? 'd' : '';
+      out += `<span class="${cls}">${n}</span>`;
+    }
+    return out + '</div>';
   }
   $('#btnReload').addEventListener('click', loadRecent);
 
