@@ -94,7 +94,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v5</span></h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v6</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -149,6 +149,8 @@
         <button type="button" data-m="1">Mode 1<small>Καθυστερημένη κλήρωση</small></button>
         <button type="button" data-m="2">Mode 2<small>Ζεστά τελευταίων 5</small></button>
         <button type="button" data-m="3">Mode 3<small>Πιο κρύα νούμερα</small></button>
+        <button type="button" data-m="4">Mode 4<small>Κλήρωση: ζεστά ζευγάρια</small></button>
+        <button type="button" data-m="5">Mode 5<small>Κλήρωση: κρύες εξάδες</small></button>
       </div>
       <label>Σύστημα</label>
       <div class="seg" id="sxSysBtns"></div>
@@ -559,11 +561,11 @@
   }); });
   function renderModeBtns(){
     $('#sxModeBtns').querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.m === sxSet.mode));
-    $('#sxHotCard').hidden = sxSet.mode === 1; $('#sxDelayCard').hidden = sxSet.mode !== 1;
+    $('#sxHotCard').hidden = ![2, 3].includes(sxSet.mode); $('#sxDelayCard').hidden = [2, 3].includes(sxSet.mode);
   }
   $('#sxModeBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
     sxSet.mode = +b.dataset.m; saveSx(); renderModeBtns(); sxSel = null; $('#sxGen').hidden = true;
-    if (sxSet.mode !== 1) renderHot();
+    if ([2, 3].includes(sxSet.mode)) renderHot();
   }));
   // 20 πιο συχνά στις τελευταίες 5 κληρώσεις· ισοβαθμία: πιο πρόσφατη εμφάνιση, μετά νωρίτερη θέση στην κλήρωση
   function hotNumbers(){
@@ -593,6 +595,34 @@
       `<span style="display:inline-flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted)"><span class="ball">${x}</span>${r.cnt[i]}×</span>`).join('') + '</div>';
     sxSel = { draw: { id: b.id, time: b.time, order: r.nums }, delay: null, mode: 2, from: a.id };
     $('#sxGen').hidden = false; renderGen();
+  }
+  // Mode 4: τα 20 της κλήρωσης, πρώτα όσα βγαίνουν μαζί σε ζευγάρια στις τελευταίες 5 κληρώσεις
+  function order4(src){
+    const H = sortedHist().slice(-5), nums = src.order;
+    const L = H.map(d => { const s = new Set(d.nums); return nums.map(x => s.has(x) ? 1 : 0); });
+    const f = nums.map((_, i) => L.reduce((a, r) => a + r[i], 0));
+    const p = nums.map((_, i) => L.reduce((a, r) => a + (r[i] ? r.reduce((s, v) => s + v, 0) - 1 : 0), 0));
+    const idx = nums.map((_, i) => i).sort((a, b) => p[b] - p[a] || f[b] - f[a] || a - b);
+    return { order: idx.map(i => nums[i]), note: idx.map(i => `${nums[i]}(${p[i]}·${f[i]})`).join(' '),
+      legend: `ζευγάρια·εμφανίσεις στις κληρώσεις ${H[0].id}–${H[H.length - 1].id}` };
+  }
+  // Mode 5: τα 20 της κλήρωσης, πρώτα όσα συμμετέχουν στις περισσότερες εξάδες χωρίς 3+ (τελευταίες max(10, μέχρι την κλήρωση))
+  let SIX20 = null;
+  function order5(src){
+    if (!SIX20){ SIX20 = []; for (let a = 0; a < 20; a++) for (let b = a + 1; b < 20; b++) for (let c = b + 1; c < 20; c++)
+      for (let d = c + 1; d < 20; d++) for (let e = d + 1; e < 20; e++) for (let f = e + 1; f < 20; f++) SIX20.push([a, b, c, d, e, f]); }
+    const Hall = sortedHist(), nums = src.order, after = Hall.filter(d => d.id > src.id).length;
+    const L = Math.min(Hall.length, Math.max(10, after));
+    const rows = Hall.slice(-L).reverse().map(d => { const s = new Set(d.nums); return nums.map(x => s.has(x) ? 1 : 0); });
+    // run = πόσες συνεχόμενες πρόσφατες κληρώσεις η εξάδα δεν έχει 3+
+    const run = new Int16Array(SIX20.length); let Rmax = 0;
+    SIX20.forEach((s, k) => { let r = 0; for (const w of rows){ if (w[s[0]] + w[s[1]] + w[s[2]] + w[s[3]] + w[s[4]] + w[s[5]] >= 3) break; r++; } run[k] = r; if (r > Rmax) Rmax = r; });
+    const R = Math.max(1, Math.min(L, Rmax)), cnt = new Array(20).fill(0), wsum = new Array(20).fill(0); let nCold = 0;
+    SIX20.forEach((s, k) => { for (const i of s) wsum[i] += run[k]; if (run[k] >= R){ nCold++; for (const i of s) cnt[i]++; } });
+    const last = nums.map(x => { for (let j = Hall.length - 1; j >= 0; j--) if (Hall[j].nums.includes(x)) return j; return -1; });
+    const idx = nums.map((_, i) => i).sort((a, b) => cnt[b] - cnt[a] || wsum[b] - wsum[a] || last[a] - last[b] || a - b);
+    return { order: idx.map(i => nums[i]), note: idx.map(i => `${nums[i]}(${cnt[i]})`).join(' '),
+      legend: `${nCold} από 38.760 εξάδες χωρίς 3+ στις τελευταίες ${R} κληρώσεις${R < Math.max(10, after) ? ' (καμία δεν άντεξε ' + Math.max(10, after) + ', οπότε κρατήθηκαν οι πιο «κρύες»)' : ''}· σε παρένθεση: σε πόσες συμμετέχει το νούμερο` };
   }
   function renderCold(){
     const r = coldNumbers();
@@ -665,7 +695,7 @@
     $('#sxDelays').innerHTML = '<tr><th>Κλήρωση</th><th>Ώρα</th><th>Καθυστ.</th><th>Μετά</th></tr>' + rows.map(r =>
       `<tr class="tap${r.delay >= thr ? ' hot' : ''}" data-id="${r.draw.id}"><td>${r.draw.id}</td><td>${fmtTime(r.draw.time)}</td><td><b>${r.delay}</b></td><td>${r.after}</td></tr>`).join('');
     $('#sxDelays').querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => {
-      const r = all.find(x => x.draw.id === +tr.dataset.id); sxSel = { draw: r.draw, delay: r.delay, mode: 1 };
+      const r = all.find(x => x.draw.id === +tr.dataset.id); sxSel = { draw: r.draw, src: r.draw, delay: r.delay, mode: sxSet.mode };
       $('#sxGen').hidden = false; renderGen(); $('#sxGen').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }));
   }
@@ -678,9 +708,15 @@
   }
   function renderGen(){
     if (!sxSel) return;
+    if ((sxSel.mode === 4 || sxSel.mode === 5) && sxSel.draw === sxSel.src) sxSel.draw = { ...sxSel.src };
+    if (sxSel.mode === 4 || sxSel.mode === 5){ sxSel.o = sxSel.mode === 4 ? order4(sxSel.src) : order5(sxSel.src); sxSel.draw.order = sxSel.o.order; }
     const d = sxSel.draw, sx = makeSixes(d.order, sxSet.sys);
     const kn = kindName(sx[0].length);
-    if (sxSel.mode === 3){
+    if (sxSel.mode === 4 || sxSel.mode === 5){
+      const o = sxSel.o;
+      $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${sxSel.src.id} (${sxSel.mode === 4 ? 'ζεστά ζευγάρια' : 'κρύες εξάδες'})`;
+      $('#sxSrc').innerHTML = `Mode ${sxSel.mode} · ${fmtTime(sxSel.src.time)} · καθυστέρηση ${sxSel.delay}<br>Θέσεις 1–20: ${o.note}<br><span style="font-size:12px">${o.legend}</span>`;
+    } else if (sxSel.mode === 3){
       $('#sxGenTitle').textContent = `Στήλες από τα κρύα νούμερα (έως κλήρωση ${d.id})`;
       $('#sxSrc').innerHTML = `Mode 3 · θέσεις 1–20: ${d.order.join(' ')}`;
     } else if (sxSel.mode === 2){
@@ -705,7 +741,7 @@
     tracks.unshift({ id: uid(), src: d.id, srcTime: d.time, order: d.order, sys: sxSet.sys, mode: sxSel.mode || 1, startAfter: latestId,
       max: Math.max(10, sxSet.max), common: sxSet.common, created: Date.now() });
     store.set(LS_TRACK, tracks); renderTracks();
-    status(`${sxSel.mode === 3 ? 'Τα κρύα νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : sxSel.mode === 2 ? 'Τα ζεστά νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : 'Η κλήρωση ' + d.id + ' μπήκε'} σε παρακολούθηση (σύστημα ${SYSNAME[sxSet.sys]}) από την κλήρωση ${latestId + 1}.`, 'ok');
+    status(`${sxSel.mode >= 4 ? 'Η κλήρωση ' + d.id + ' (Mode ' + sxSel.mode + ') μπήκε' : sxSel.mode === 3 ? 'Τα κρύα νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : sxSel.mode === 2 ? 'Τα ζεστά νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : 'Η κλήρωση ' + d.id + ' μπήκε'} σε παρακολούθηση (σύστημα ${SYSNAME[sxSet.sys]}) από την κλήρωση ${latestId + 1}.`, 'ok');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
@@ -734,7 +770,7 @@
       const K = e.sx[0].length;
       const dist = [3, 4, 5, 6].map(k => e.rows.reduce((a, r) => a + r.hits.filter(h => h === k).length, 0));
       return `<div class="card">
-        <div class="row"><strong style="flex:1">${t.mode === 3 ? 'M3 · Κρύα έως ' + t.src : t.mode === 2 ? 'M2 · Ζεστά έως ' + t.src : 'M1 · Κλήρωση ' + t.src} · ${SYSNAME[t.sys]} (${e.sx.length})</strong>
+        <div class="row"><strong style="flex:1">${t.mode === 4 ? 'M4 · Κλήρωση ' + t.src + ' (ζευγάρια)' : t.mode === 5 ? 'M5 · Κλήρωση ' + t.src + ' (κρύες εξάδες)' : t.mode === 3 ? 'M3 · Κρύα έως ' + t.src : t.mode === 2 ? 'M2 · Ζεστά έως ' + t.src : 'M1 · Κλήρωση ' + t.src} · ${SYSNAME[t.sys]} (${e.sx.length})</strong>
           <span class="badge${e.done ? '' : ' good'}">${e.done ? 'Τέλος' : 'Ενεργή'}</span></div>
         <div class="muted">${e.state}</div>
         <div class="stats">
@@ -766,7 +802,7 @@
       const K = e.sx[0].length, topH = K === 5 ? 4 : 5;
       a.n++; a.draws += e.rows.length; a.cost += e.cost; a.won += e.won;
       a.top += e.rows.filter(r => r.best >= topH).length; a.any += e.rows.filter(r => r.win > 0).length; });
-    const keys = [1, 2, 3].flatMap(m => SYSORDER.map(s => s + '|' + m)).filter(k => agg[k]);
+    const keys = [1, 2, 3, 4, 5].flatMap(m => SYSORDER.map(s => s + '|' + m)).filter(k => agg[k]);
     if (!keys.length){ $('#sxPerf').innerHTML = ''; return; }
     const tot = keys.reduce((a, s) => ({ cost: a.cost + agg[s].cost, won: a.won + agg[s].won }), { cost: 0, won: 0 });
     $('#sxPerf').innerHTML = `<div class="card"><strong>Συνολική απόδοση</strong>
