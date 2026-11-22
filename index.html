@@ -94,7 +94,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v3</span></h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v4</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -144,14 +144,28 @@
     <div id="sxTracks"></div>
 
     <div class="card">
+      <strong>Τρόπος επιλογής των 20 νούμερων</strong>
+      <div class="seg" id="sxModeBtns" style="grid-template-columns:1fr 1fr; margin-top:8px">
+        <button type="button" data-m="1">Mode 1<small>Καθυστερημένη κλήρωση</small></button>
+        <button type="button" data-m="2">Mode 2<small>Ζεστά τελευταίων 5</small></button>
+      </div>
+      <label>Σύστημα</label>
+      <div class="seg" id="sxSysBtns"></div>
+      <div class="muted" id="sxSysDesc" style="margin-top:6px"></div>
+    </div>
+
+    <div class="card" id="sxHotCard" hidden>
+      <strong>Ζεστά νούμερα: οι 20 που βγήκαν περισσότερο στις τελευταίες 5 κληρώσεις</strong>
+      <div class="muted" id="sxHotInfo" style="margin-top:4px"></div>
+      <div id="sxHot"></div>
+    </div>
+
+    <div class="card" id="sxDelayCard">
       <strong>Κληρώσεις που καθυστερούν</strong>
       <div class="row" style="margin-top:6px">
         <div style="flex:1"><label for="sxThr">Όριο καθυστέρησης</label><input type="number" id="sxThr" min="1" value="7"></div>
         <div style="flex:1"><label for="sxCommon">Κοινά για «σπάσιμο»</label><input type="number" id="sxCommon" min="1" max="20" value="6"></div>
       </div>
-      <label>Σύστημα</label>
-      <div class="seg" id="sxSysBtns"></div>
-      <div class="muted" id="sxSysDesc" style="margin-top:6px"></div>
       <div class="muted" id="sxInfo" style="margin-top:8px"></div>
       <table class="t" id="sxDelays" style="margin-top:6px"></table>
     </div>
@@ -526,11 +540,11 @@
   let pay = store.get(LS_PAY, { price: 0.5, p: [0, 0, 0, 0.5, 3.5, 25, 800] });
   let pay5 = store.get('kino.sx.pay5.v1', [0, 0, 0, 1, 10, 225]);
   const payFor = k => k === 5 ? pay5 : pay.p;
-  const sxSet = store.get(LS_SXSET, { thr: 7, common: 6, sys: 'A', max: 10, stop: true });
+  const sxSet = store.get(LS_SXSET, { thr: 7, common: 6, sys: 'E', mode: 1, max: 10, stop: true });
   const cache = new Map();           // drawId -> κλήρωση
   let latestId = 0, sxSel = null, sxTimer = null, sxBusy = false;
 
-  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E';
+  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1;
   $('#sxMax').value = Math.max(10, sxSet.max);
   const payIds = ['pp0', 'pp3', 'pp4', 'pp5', 'pp6'];
   const payVals = () => [pay.price, pay.p[3], pay.p[4], pay.p[5], pay.p[6]];
@@ -542,13 +556,39 @@
     pay5 = [0, 0, 0, +$('#pq3').value || 0, +$('#pq4').value || 0, +$('#pq5').value || 0];
     store.set('kino.sx.pay5.v1', pay5); renderTracks();
   }); });
+  function renderModeBtns(){
+    $('#sxModeBtns').querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.m === sxSet.mode));
+    $('#sxHotCard').hidden = sxSet.mode !== 2; $('#sxDelayCard').hidden = sxSet.mode !== 1;
+  }
+  $('#sxModeBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    sxSet.mode = +b.dataset.m; saveSx(); renderModeBtns(); sxSel = null; $('#sxGen').hidden = true;
+    if (sxSet.mode === 2) renderHot();
+  }));
+  // 20 πιο συχνά στις τελευταίες 5 κληρώσεις· ισοβαθμία: πιο πρόσφατη εμφάνιση, μετά νωρίτερη θέση στην κλήρωση
+  function hotNumbers(){
+    const H = sortedHist().slice(-5), sc = new Map();
+    H.forEach((d, j) => d.order.forEach((x, p) => { const o = sc.get(x) || { n: 0 }; sc.set(x, { n: o.n + 1, j, p }); }));
+    const list = [...sc.entries()].sort((a, b) => b[1].n - a[1].n || b[1].j - a[1].j || a[1].p - b[1].p).slice(0, 20);
+    return { H, nums: list.map(e => e[0]), cnt: list.map(e => e[1].n) };
+  }
+  function renderHot(){
+    if (sxSet.mode !== 2) return;
+    const r = hotNumbers();
+    if (r.H.length < 5){ $('#sxHotInfo').textContent = 'Χρειάζονται τουλάχιστον 5 κληρώσεις.'; return; }
+    const a = r.H[0], b = r.H[r.H.length - 1];
+    $('#sxHotInfo').textContent = `Κληρώσεις ${a.id}–${b.id} (${fmtTime(a.time)} – ${fmtTime(b.time)}). Σειρά: συχνότερα πρώτα, σε ισοβαθμία το πιο πρόσφατο.`;
+    $('#sxHot').innerHTML = '<div class="balls">' + r.nums.map((x, i) =>
+      `<span style="display:inline-flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted)"><span class="ball">${x}</span>${r.cnt[i]}×</span>`).join('') + '</div>';
+    sxSel = { draw: { id: b.id, time: b.time, order: r.nums }, delay: null, mode: 2, from: a.id };
+    $('#sxGen').hidden = false; renderGen();
+  }
   function renderSysBtns(){
     $('#sxSysBtns').innerHTML = SYSORDER.map(s => `<button type="button" data-s="${s}" class="${s === sxSet.sys ? 'on' : ''}">${SYSNAME[s]}<small>${SYS[s].length} ${kindName(SYS[s][0].length)}</small></button>`).join('');
     $('#sxSysDesc').textContent = SYSDESC[sxSet.sys];
     $('#sxSysBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { sxSet.sys = b.dataset.s; saveSx(); renderSysBtns(); renderGen(); }));
   }
   function saveSx(){
-    Object.assign(sxSet, { thr: +$('#sxThr').value || 7, common: +$('#sxCommon').value || 6, sys: sxSet.sys,
+    Object.assign(sxSet, { thr: +$('#sxThr').value || 7, common: +$('#sxCommon').value || 6, sys: sxSet.sys, mode: sxSet.mode,
       max: Math.max(10, +$('#sxMax').value || 10) });
     store.set(LS_SXSET, sxSet);
   }
@@ -577,7 +617,7 @@
       }
       $('#sxUpd').textContent = 'Τελευταία κλήρωση: ' + latestId + ' · ' + fmtTime(cache.get(latestId).time) +
         ' · ενημέρωση ' + new Date().toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
-      renderDelays(); renderTracks(); renderGen();
+      renderDelays(); renderTracks(); renderGen(); renderHot();
     }catch(e){ $('#sxUpd').textContent = ''; status(e.message, 'err'); }
     finally{ sxBusy = false; $('#sxRefresh').disabled = false; }
   }
@@ -602,7 +642,7 @@
     $('#sxDelays').innerHTML = '<tr><th>Κλήρωση</th><th>Ώρα</th><th>Καθυστ.</th><th>Μετά</th></tr>' + rows.map(r =>
       `<tr class="tap${r.delay >= thr ? ' hot' : ''}" data-id="${r.draw.id}"><td>${r.draw.id}</td><td>${fmtTime(r.draw.time)}</td><td><b>${r.delay}</b></td><td>${r.after}</td></tr>`).join('');
     $('#sxDelays').querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => {
-      const r = all.find(x => x.draw.id === +tr.dataset.id); sxSel = { draw: r.draw, delay: r.delay };
+      const r = all.find(x => x.draw.id === +tr.dataset.id); sxSel = { draw: r.draw, delay: r.delay, mode: 1 };
       $('#sxGen').hidden = false; renderGen(); $('#sxGen').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }));
   }
@@ -617,8 +657,13 @@
     if (!sxSel) return;
     const d = sxSel.draw, sx = makeSixes(d.order, sxSet.sys);
     const kn = kindName(sx[0].length);
-    $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${d.id}`;
-    $('#sxSrc').innerHTML = `${fmtTime(d.time)} · καθυστέρηση ${sxSel.delay}<br>Σειρά εμφάνισης: ${d.order.join(' ')}`;
+    if (sxSel.mode === 2){
+      $('#sxGenTitle').textContent = `Στήλες από τα ζεστά νούμερα (έως κλήρωση ${d.id})`;
+      $('#sxSrc').innerHTML = `Mode 2 · θέσεις 1–20: ${d.order.join(' ')}`;
+    } else {
+      $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${d.id}`;
+      $('#sxSrc').innerHTML = `Mode 1 · ${fmtTime(d.time)} · καθυστέρηση ${sxSel.delay}<br>Σειρά εμφάνισης: ${d.order.join(' ')}`;
+    }
     $('#sxCost').textContent = `${sx.length} ${kn} · ${eur(sx.length * pay.price)} ανά κλήρωση · έως ${eur(sx.length * pay.price * sxSet.max)} για ${sxSet.max} κληρώσεις`;
     $('#sxList').innerHTML = sixesHtml(sx);
   }
@@ -631,10 +676,10 @@
   $('#sxTrack').addEventListener('click', () => {
     if (!sxSel) return;
     const d = sxSel.draw;
-    tracks.unshift({ id: uid(), src: d.id, srcTime: d.time, order: d.order, sys: sxSet.sys, startAfter: latestId,
+    tracks.unshift({ id: uid(), src: d.id, srcTime: d.time, order: d.order, sys: sxSet.sys, mode: sxSel.mode || 1, startAfter: latestId,
       max: Math.max(10, sxSet.max), common: sxSet.common, created: Date.now() });
     store.set(LS_TRACK, tracks); renderTracks();
-    status(`Η κλήρωση ${d.id} μπήκε σε παρακολούθηση (σύστημα ${SYSNAME[sxSet.sys]}) από την κλήρωση ${latestId + 1}.`, 'ok');
+    status(`${sxSel.mode === 2 ? 'Τα ζεστά νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : 'Η κλήρωση ' + d.id + ' μπήκε'} σε παρακολούθηση (σύστημα ${SYSNAME[sxSet.sys]}) από την κλήρωση ${latestId + 1}.`, 'ok');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
@@ -663,7 +708,7 @@
       const K = e.sx[0].length;
       const dist = [3, 4, 5, 6].map(k => e.rows.reduce((a, r) => a + r.hits.filter(h => h === k).length, 0));
       return `<div class="card">
-        <div class="row"><strong style="flex:1">Κλήρωση ${t.src} · Σύστημα ${SYSNAME[t.sys]} (${e.sx.length})</strong>
+        <div class="row"><strong style="flex:1">${t.mode === 2 ? 'M2 · Ζεστά έως ' + t.src : 'M1 · Κλήρωση ' + t.src} · ${SYSNAME[t.sys]} (${e.sx.length})</strong>
           <span class="badge${e.done ? '' : ' good'}">${e.done ? 'Τέλος' : 'Ενεργή'}</span></div>
         <div class="muted">${e.state}</div>
         <div class="stats">
@@ -691,17 +736,17 @@
   function renderPerf(){
     const agg = {};
     tracks.forEach(t => { const e = evalTrack(t); if (!e.rows.length) return;
-      const a = agg[t.sys] || (agg[t.sys] = { n: 0, draws: 0, cost: 0, won: 0, top: 0, any: 0 });
+      const key = t.sys + '|' + (t.mode || 1); const a = agg[key] || (agg[key] = { n: 0, draws: 0, cost: 0, won: 0, top: 0, any: 0 });
       const K = e.sx[0].length, topH = K === 5 ? 4 : 5;
       a.n++; a.draws += e.rows.length; a.cost += e.cost; a.won += e.won;
       a.top += e.rows.filter(r => r.best >= topH).length; a.any += e.rows.filter(r => r.win > 0).length; });
-    const keys = SYSORDER.filter(s => agg[s]);
+    const keys = [1, 2].flatMap(m => SYSORDER.map(s => s + '|' + m)).filter(k => agg[k]);
     if (!keys.length){ $('#sxPerf').innerHTML = ''; return; }
     const tot = keys.reduce((a, s) => ({ cost: a.cost + agg[s].cost, won: a.won + agg[s].won }), { cost: 0, won: 0 });
     $('#sxPerf').innerHTML = `<div class="card"><strong>Συνολική απόδοση</strong>
       <div style="overflow-x:auto"><table class="t" style="margin-top:6px;font-size:12px"><tr><th>Σύστ.</th><th>Παρ.</th><th>Κλ.</th><th>Κόστος</th><th>Κέρδη</th><th>Απόδ.</th><th>Κορυφ.</th></tr>` +
       keys.map(s => { const a = agg[s], r = a.won / a.cost - 1;
-        return `<tr><td><b>${SYSNAME[s]}</b></td><td>${a.n}</td><td>${a.draws}</td><td>${eur(a.cost)}</td><td>${eur(a.won)}</td><td class="${r >= 0 ? 'pos' : 'neg'}">${(r * 100).toFixed(1).replace('.', ',')}%</td><td>${a.top}</td></tr>`; }).join('') +
+        return `<tr><td><b>${SYSNAME[s.split('|')[0]]}</b> <span class="muted">M${s.split('|')[1]}</span></td><td>${a.n}</td><td>${a.draws}</td><td>${eur(a.cost)}</td><td>${eur(a.won)}</td><td class="${r >= 0 ? 'pos' : 'neg'}">${(r * 100).toFixed(1).replace('.', ',')}%</td><td>${a.top}</td></tr>`; }).join('') +
       `</table></div><div class="muted" style="margin-top:6px">Κορυφ. = κληρώσεις με 4/5 ή 5+/6. Σύνολο: κόστος ${eur(tot.cost)} · κέρδη ${eur(tot.won)} · καθαρό <b class="${tot.won >= tot.cost ? 'pos' : 'neg'}">${eur(tot.won - tot.cost)}</b>. Θεωρητική απόδοση όλων ≈ −30%.</div></div>`;
   }
   // αυτόματος έλεγχος: κάθε 60" όσο η καρτέλα είναι ανοιχτή και η εφαρμογή στο προσκήνιο
@@ -712,7 +757,7 @@
   }
   sxTimer = setInterval(sxTick, 60e3);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('#tab-sixes').hidden) sxLoad(); });
-  renderSysBtns(); renderTracks();
+  renderSysBtns(); renderModeBtns(); renderTracks();
 
   buildGrid(); renderTickets();
 })();
