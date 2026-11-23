@@ -102,7 +102,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v7</span></h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v8</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -187,6 +187,10 @@
       <div class="row" style="margin-top:8px">
         <div style="flex:1"><label for="sxMax">Κληρώσεις παρακολούθησης (τουλάχιστον 10)</label><input type="number" id="sxMax" min="10" max="100" value="10"></div>
       </div>
+      <label class="row" style="color:var(--ink);margin-top:10px"><input type="checkbox" id="sxFilt" style="width:20px;height:20px">
+        Φίλτρο ιστορικού: κάθε στήλη το πολύ ένα 6/6 και ένα 5/6 (πεντάδες: ένα 5/5 και ένα 4/5)</label>
+      <div class="row"><div style="flex:1"><label for="sxFiltN">Έλεγχος στις τελευταίες κληρώσεις</label><input type="number" id="sxFiltN" min="5" max="300" value="100"></div></div>
+      <div class="muted" id="sxFiltInfo" style="margin-top:6px"></div>
       <div class="muted" id="sxCost" style="margin-top:6px"></div>
       <div id="sxList" style="margin-top:8px"></div>
       <div class="row" style="margin-top:10px">
@@ -583,7 +587,8 @@
   const cache = new Map();           // drawId -> κλήρωση
   let latestId = 0, sxSel = null, sxTimer = null, sxBusy = false;
 
-  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1;
+  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1; if (sxSet.filt === undefined) sxSet.filt = true; if (!sxSet.filtN) sxSet.filtN = 100;
+  $('#sxFilt').checked = sxSet.filt; $('#sxFiltN').value = sxSet.filtN;
   $('#sxMax').value = Math.max(10, sxSet.max);
   const payIds = ['pp0', 'pp3', 'pp4', 'pp5', 'pp6'];
   const payVals = () => [pay.price, pay.p[3], pay.p[4], pay.p[5], pay.p[6]];
@@ -677,12 +682,12 @@
     $('#sxSysBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { sxSet.sys = b.dataset.s; saveSx(); renderSysBtns(); renderGen(); }));
   }
   function saveSx(){
-    Object.assign(sxSet, { thr: +$('#sxThr').value || 7, common: +$('#sxCommon').value || 6, sys: sxSet.sys, mode: sxSet.mode,
+    Object.assign(sxSet, { thr: +$('#sxThr').value || 7, common: +$('#sxCommon').value || 6, sys: sxSet.sys, mode: sxSet.mode, filt: $('#sxFilt').checked, filtN: Math.min(300, Math.max(5, +$('#sxFiltN').value || 100)),
       max: Math.max(10, +$('#sxMax').value || 10) });
     store.set(LS_SXSET, sxSet);
   }
   ['sxThr', 'sxCommon'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderDelays(); renderTracks(); }));
-  ['sxMax'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
+  ['sxMax', 'sxFilt', 'sxFiltN'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
 
   const common = (a, b) => { const s = new Set(b); let c = 0; for (const x of a) if (s.has(x)) c++; return c; };
   const eur = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2).replace('.', ',') + '€';
@@ -735,18 +740,52 @@
       $('#sxGen').hidden = false; renderGen(); $('#sxGen').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }));
   }
-  function sixesHtml(sixes, hitSet){
+  function sixesHtml(sixes, hitSet, st){
     return sixes.map((s, i) => {
-      const h = hitSet ? s.filter(x => hitSet.has(x)).length : null;
+      const h = hitSet ? s.filter(x => hitSet.has(x)).length : null, K = s.length;
+      const bad = st && (st[i][0] > 1 || st[i][1] > 1);
       return `<div class="sixrow"><span class="muted" style="width:22px">${i + 1}</span>${ballsHtml(s, hitSet)}` +
-        (h != null ? `<span class="badge${h >= 3 ? ' good' : ''}">${h}/${s.length}</span>` : '') + '</div>';
+        (h != null ? `<span class="badge${h >= 3 ? ' good' : ''}">${h}/${K}</span>` : '') +
+        (st ? `<span style="font-size:10px;line-height:1.2;text-align:right;color:${bad ? 'var(--danger)' : 'var(--muted)'}">${K}/${K}×${st[i][0]}<br>${K - 1}/${K}×${st[i][1]}</span>` : '') + '</div>';
     }).join('');
+  }
+  // Φίλτρο ιστορικού: αναδιάταξη θέσεων (ανταλλαγές) ώστε κάθε στήλη να έχει ≤1 πλήρη επιτυχία και ≤1 «παρά ένα» στις τελευταίες N κληρώσεις.
+  // Οι εγγυήσεις του συστήματος μένουν ίδιες, γιατί το σχέδιο θέσεων δεν αλλάζει.
+  function colStats(T, M){
+    return T.map(p => { let f = 0, m = 0; for (const r of M){ let h = 0; for (const k of p) h += r[k - 1]; if (h === p.length) f++; else if (h === p.length - 1) m++; } return [f, m]; });
+  }
+  const violOf = st => st.reduce((a, [f, m]) => a + Math.max(0, f - 1) + Math.max(0, m - 1), 0);
+  function fixOrder(base, sys){
+    const T = SYS[sys], H = sortedHist().slice(-sxSet.filtN), ord = base.slice();
+    const M = H.map(d => { const s = new Set(d.nums); return ord.map(x => s.has(x) ? 1 : 0); });
+    const swap = (i, j) => { [ord[i], ord[j]] = [ord[j], ord[i]]; for (const r of M) [r[i], r[j]] = [r[j], r[i]]; };
+    let st = colStats(T, M), v = violOf(st), it = 0;
+    while (v > 0 && it++ < 60){
+      const badPos = new Set(); T.forEach((p, c) => { if (st[c][0] > 1 || st[c][1] > 1) p.forEach(k => badPos.add(k - 1)); });
+      let done = false;
+      for (const i of badPos){
+        for (let j = 19; j >= 0 && !done; j--){
+          if (j === i) continue;
+          swap(i, j); const s2 = colStats(T, M), v2 = violOf(s2);
+          if (v2 < v){ st = s2; v = v2; done = true; } else swap(i, j);
+        }
+        if (done) break;
+      }
+      if (!done) break;
+    }
+    const moved = ord.filter((x, i) => x !== base[i]).length;
+    return { order: ord, st, bad: st.filter(([f, m]) => f > 1 || m > 1).length, moved, n: H.length };
   }
   function renderGen(){
     if (!sxSel) return;
-    if ((sxSel.mode === 4 || sxSel.mode === 5) && sxSel.draw === sxSel.src) sxSel.draw = { ...sxSel.src };
-    if (sxSel.mode === 4 || sxSel.mode === 5){ sxSel.o = sxSel.mode === 4 ? order4(sxSel.src) : order5(sxSel.src); sxSel.draw.order = sxSel.o.order; }
-    const d = sxSel.draw, sx = makeSixes(d.order, sxSet.sys);
+    if (!sxSel.own){ sxSel.base = sxSel.draw.order.slice(); sxSel.draw = { ...sxSel.draw, order: sxSel.base.slice() }; sxSel.own = true; }
+    if (sxSel.mode === 4 || sxSel.mode === 5){ sxSel.o = sxSel.mode === 4 ? order4(sxSel.src) : order5(sxSel.src); sxSel.base = sxSel.o.order; }
+    let F = null;
+    if (sxSet.filt){ F = fixOrder(sxSel.base, sxSet.sys); sxSel.draw.order = F.order; } else sxSel.draw.order = sxSel.base.slice();
+    const d = sxSel.draw, sx = makeSixes(d.order, sxSet.sys), K0 = sx[0].length;
+    $('#sxFiltInfo').innerHTML = !F ? 'Φίλτρο ανενεργό.' :
+      (F.bad ? `<span style="color:var(--danger)">${F.bad} στήλες δεν διορθώθηκαν (κόκκινες).</span> ` : `Όλες οι στήλες έχουν ≤1 ${K0}/${K0} και ≤1 ${K0 - 1}/${K0} στις τελευταίες ${F.n} κληρώσεις. `) +
+      (F.moved ? `Άλλαξαν θέση ${F.moved} νούμερα· νέα σειρά: ${F.order.join(' ')}` : 'Δεν χρειάστηκε αλλαγή σειράς.');
     const kn = kindName(sx[0].length);
     if (sxSel.mode === 4 || sxSel.mode === 5){
       const o = sxSel.o;
@@ -754,16 +793,16 @@
       $('#sxSrc').innerHTML = `Mode ${sxSel.mode} · ${fmtTime(sxSel.src.time)} · καθυστέρηση ${sxSel.delay}<br>Θέσεις 1–20: ${o.note}<br><span style="font-size:12px">${o.legend}</span>`;
     } else if (sxSel.mode === 3){
       $('#sxGenTitle').textContent = `Στήλες από τα κρύα νούμερα (έως κλήρωση ${d.id})`;
-      $('#sxSrc').innerHTML = `Mode 3 · θέσεις 1–20: ${d.order.join(' ')}`;
+      $('#sxSrc').innerHTML = `Mode 3 · θέσεις 1–20: ${sxSel.base.join(' ')}`;
     } else if (sxSel.mode === 2){
       $('#sxGenTitle').textContent = `Στήλες από τα ζεστά νούμερα (έως κλήρωση ${d.id})`;
-      $('#sxSrc').innerHTML = `Mode 2 · θέσεις 1–20: ${d.order.join(' ')}`;
+      $('#sxSrc').innerHTML = `Mode 2 · θέσεις 1–20: ${sxSel.base.join(' ')}`;
     } else {
       $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${d.id}`;
-      $('#sxSrc').innerHTML = `Mode 1 · ${fmtTime(d.time)} · καθυστέρηση ${sxSel.delay}<br>Σειρά εμφάνισης: ${d.order.join(' ')}`;
+      $('#sxSrc').innerHTML = `Mode 1 · ${fmtTime(d.time)} · καθυστέρηση ${sxSel.delay}<br>Σειρά εμφάνισης: ${sxSel.base.join(' ')}`;
     }
     $('#sxCost').textContent = `${sx.length} ${kn} · ${eur(sx.length * pay.price)} ανά κλήρωση · έως ${eur(sx.length * pay.price * sxSet.max)} για ${sxSet.max} κληρώσεις`;
-    $('#sxList').innerHTML = sixesHtml(sx);
+    $('#sxList').innerHTML = sixesHtml(sx, null, F ? F.st : null);
   }
   $('#sxCopy').addEventListener('click', async () => {
     if (!sxSel) return;
