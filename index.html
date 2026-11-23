@@ -102,7 +102,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v8</span></h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v9</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -159,6 +159,7 @@
         <button type="button" data-m="3">Mode 3<small>Πιο κρύα νούμερα</small></button>
         <button type="button" data-m="4">Mode 4<small>Κλήρωση: ζεστά ζευγάρια</small></button>
         <button type="button" data-m="5">Mode 5<small>Κλήρωση: κρύες εξάδες</small></button>
+        <button type="button" data-m="6">Mode 6<small>Στήλες ταμπλό (8 αρ.)</small></button>
       </div>
       <label>Σύστημα</label>
       <div class="seg" id="sxSysBtns"></div>
@@ -169,6 +170,17 @@
       <strong id="sxHotTitle">Ζεστά νούμερα</strong>
       <div class="muted" id="sxHotInfo" style="margin-top:4px"></div>
       <div id="sxHot"></div>
+    </div>
+
+    <div class="card" id="sxColCard" hidden>
+      <strong>Οι 10 στήλες του ταμπλό: πόσες κληρώσεις πριν έβγαλαν 8, 7, 6, 5, 4 από τα 8</strong>
+      <div class="row" style="margin-top:6px">
+        <div style="flex:1"><label for="sxRuleMin">Κανόνας: χωρίς 5+ από</label><input type="number" id="sxRuleMin" min="1" value="125"></div>
+        <div style="flex:1"><label for="sxRuleMax">έως κληρώσεις</label><input type="number" id="sxRuleMax" min="1" value="150"></div>
+        <div style="flex:1"><label for="sxDays">Ημέρες ιστορικού</label><input type="number" id="sxDays" min="2" max="30" value="7"></div>
+      </div>
+      <div class="muted" id="sxColInfo" style="margin-top:8px"></div>
+      <div style="overflow-x:auto"><table class="t" id="sxCols" style="margin-top:6px"></table></div>
     </div>
 
     <div class="card" id="sxDelayCard">
@@ -571,12 +583,16 @@
   const SXR = {"6_3":[[1,2,3,4,5,6],[7,8,9,10,11,12],[13,14,15,16,17,18],[1,2,7,13,19,20],[3,4,8,14,19,20],[5,6,9,10,15,16],[5,6,11,12,17,18],[1,3,9,10,17,18],[2,4,11,12,15,16],[5,6,7,8,13,14],[1,2,8,14,19,20],[3,4,7,13,19,20],[1,2,3,4,7,13],[1,2,9,10,19,20]],"8_4":[[1,2,3,4,5,6],[7,8,9,10,11,12],[13,14,15,16,17,18],[1,2,7,13,19,20],[3,4,8,14,19,20],[5,6,9,10,15,19],[5,11,12,16,17,20],[1,6,8,11,16,18],[2,3,9,12,17,18],[4,7,10,12,13,15],[2,5,7,10,14,18],[1,4,9,11,14,17],[3,6,9,13,16,20],[2,8,11,15,16,19],[1,3,7,8,15,17],[6,12,13,14,18,19],[4,5,8,10,18,20],[2,6,11,14,15,20],[3,4,7,16,17,19],[1,5,10,12,14,16],[2,5,8,9,11,13],[1,11,15,18,19,20],[4,6,7,8,10,17],[1,4,7,9,15,16],[3,10,11,12,13,18],[1,8,9,12,17,20],[2,3,5,7,14,15],[2,4,14,16,18,19],[1,3,5,6,7,14],[1,2,3,4,6,10]],"7_4":[[1,2,3,4,5,6],[7,8,9,10,11,12],[13,14,15,16,17,18],[1,2,7,13,19,20],[3,4,8,14,19,20],[5,6,9,10,15,19],[5,11,12,16,17,20],[1,6,8,11,15,18],[2,3,9,12,16,18],[4,6,7,10,14,17],[4,5,8,10,13,18],[1,3,9,11,13,17],[2,5,7,12,14,15],[4,7,9,15,16,20],[1,10,12,14,16,19],[2,6,8,16,17,19],[3,6,12,13,18,20],[2,10,11,14,18,20],[3,5,7,17,18,19],[4,11,12,13,15,19],[1,5,8,9,13,14],[2,3,8,10,15,17],[3,6,7,11,13,16],[1,4,9,12,17,18],[2,4,6,9,11,14],[1,5,10,15,16,20],[6,7,8,9,17,20],[1,4,7,8,11,16],[3,9,14,15,19,20],[2,5,9,10,13,19],[5,6,11,16,18,19],[2,8,12,13,15,20],[1,3,6,7,10,12],[3,4,10,13,14,16],[4,7,10,15,18,19],[5,8,12,14,17,19],[4,5,11,15,17,20],[1,2,7,14,17,18],[7,8,9,13,16,18],[3,5,7,8,11,12],[1,4,6,10,19,20],[6,9,12,14,15,16],[2,11,13,16,17,19],[1,2,5,13,15,16],[2,4,5,9,12,17],[6,7,10,13,14,20],[1,3,4,6,8,18],[2,3,16,17,19,20],[1,2,4,5,7,9]],"6_4":[[1,2,3,4,5,6],[1,7,8,9,10,11],[1,12,13,14,15,16],[2,7,12,17,18,19],[3,4,8,13,17,20],[5,6,9,14,18,20],[2,10,11,15,16,20],[3,4,9,10,14,19],[5,6,8,11,13,19],[3,7,8,15,16,18],[4,5,11,12,15,17],[1,6,9,16,17,19],[6,7,10,12,13,20],[2,3,11,13,14,18],[5,7,10,14,16,17],[1,4,15,18,19,20],[2,4,8,9,12,16],[2,6,8,14,15,17],[2,5,7,9,13,15],[1,3,5,10,12,18],[3,9,11,12,19,20],[4,6,7,11,16,18],[1,7,8,14,19,20],[9,10,13,15,17,18],[2,5,13,16,19,20],[3,6,10,12,15,19],[1,4,11,13,14,17],[4,8,10,12,14,18],[1,2,3,7,17,20],[3,5,8,11,16,17],[1,2,8,10,13,19],[3,6,7,9,12,14],[1,5,8,9,15,20],[5,7,11,14,15,19],[1,2,6,11,12,18],[4,6,9,10,13,16],[8,12,16,17,18,20],[4,5,7,13,18,19],[2,4,10,11,17,20],[3,4,14,15,16,20],[2,9,14,16,18,19],[1,3,7,11,13,16],[4,6,7,8,15,17],[2,5,8,10,12,14],[3,6,10,17,18,19],[1,5,9,12,17,19],[8,9,11,13,15,18],[1,6,10,11,14,20],[4,7,9,12,16,20],[2,3,4,9,11,15],[1,5,6,15,16,18],[12,13,14,16,17,19],[2,3,6,7,8,20],[4,5,8,10,16,19],[3,5,13,15,17,20],[1,2,4,7,10,14],[1,3,8,9,13,18],[2,4,6,12,13,20],[7,9,11,17,18,20],[1,3,10,12,16,17],[5,7,8,11,12,16],[2,5,9,10,11,18],[8,9,11,13,14,17],[4,8,11,12,15,19],[6,7,10,15,19,20],[2,4,5,17,18,19],[3,5,6,13,14,16],[1,9,12,14,15,20],[2,3,7,9,17,19],[1,4,5,8,11,14],[3,4,7,10,12,13],[8,10,13,16,18,20],[1,2,6,7,13,17],[4,6,14,15,18,19],[1,2,3,8,15,17],[1,4,5,11,13,20],[3,9,12,15,16,18],[3,6,8,10,11,17],[2,11,15,16,18,19],[3,5,7,8,18,20],[6,8,9,13,19,20],[2,7,8,13,14,15],[1,9,10,11,14,15],[2,4,6,12,16,17],[6,11,13,17,18,19],[2,5,9,12,14,20],[1,2,3,4,14,18],[1,7,12,15,18,19],[3,4,5,9,10,13],[1,3,4,6,11,20]]}
 ;
   const F10 = [[1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15],[16,17,18,19,20],[1,2,6,11,16],[3,4,7,12,17],[5,8,9,13,18],[10,14,15,19,20],[1,8,9,12,19],[2,7,14,15,18]];
-  const SYS = { A: SXR['6_3'], B: SXR['8_4'], C: SXR['7_4'], D: SXR['6_4'], E: F10, F: F10.slice(0, 6) };
-  const SYSNAME = { A: 'Α', B: 'Β', C: 'Γ', D: 'Δ', E: '5×10', F: '5×6' };
+  const SYS = { A: SXR['6_3'], B: SXR['8_4'], C: SXR['7_4'], D: SXR['6_4'], E: F10, F: F10.slice(0, 6),
+    P5: [[1,2,3,6,8],[1,2,4,6,8],[1,3,4,5,7],[2,3,4,6,8],[2,5,6,7,8]],
+    S7: [[1,2,3,4,5,7],[1,2,3,5,6,8],[1,2,4,5,6,7],[1,2,4,5,7,8],[1,3,4,5,6,8],[1,3,5,6,7,8],[2,3,4,6,7,8]] };
+  const SYSNAME = { A: 'Α', B: 'Β', C: 'Γ', D: 'Δ', E: '5×10', F: '5×6', P5: 'Πεντάδες', S7: 'Εξάδες' };
   const SYSDESC = { A: '14 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 3/6', B: '30 εξάδες · αν βγουν 8 από τα 20 → σίγουρα ≥ 4/6',
     C: '49 εξάδες · αν βγουν 7 από τα 20 → σίγουρα ≥ 4/6', D: '90 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 4/6',
-    E: '10 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 85% των περιπτώσεων', F: '6 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 65% των περιπτώσεων' };
-  const SYSORDER = ['E', 'F', 'A', 'B', 'C', 'D'];
+    E: '10 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 85% των περιπτώσεων',
+    P5: '5 πεντάδες από τα 8 της στήλης · αν βγουν 5 από τα 8 → σίγουρα ≥ 4/5', S7: '7 εξάδες από τα 8 της στήλης · αν βγουν 4 από τα 8 → σίγουρα ≥ 4/6', F: '6 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 65% των περιπτώσεων' };
+  const SYSORDER = ['E', 'F', 'A', 'B', 'C', 'D', 'P5', 'S7'];
+  const sysList = () => sxSet.mode === 6 ? ['P5', 'S7'] : ['E', 'F', 'A', 'B', 'C', 'D'];
   const kindName = k => k === 5 ? 'πεντάδες' : 'εξάδες';
   const LS_TRACK = 'kino.sx.tracks.v1', LS_PAY = 'kino.sx.pay.v1', LS_SXSET = 'kino.sx.set.v1';
   let tracks = store.get(LS_TRACK, []);
@@ -587,7 +603,8 @@
   const cache = new Map();           // drawId -> κλήρωση
   let latestId = 0, sxSel = null, sxTimer = null, sxBusy = false;
 
-  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1; if (sxSet.filt === undefined) sxSet.filt = true; if (!sxSet.filtN) sxSet.filtN = 100;
+  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1; if (sxSet.filt === undefined) sxSet.filt = true; if (!sxSet.filtN) sxSet.filtN = 100; if (!sxSet.rmin) sxSet.rmin = 125; if (!sxSet.rmax) sxSet.rmax = 150; if (!sxSet.days) sxSet.days = 7;
+  $('#sxRuleMin').value = sxSet.rmin; $('#sxRuleMax').value = sxSet.rmax; $('#sxDays').value = sxSet.days;
   $('#sxFilt').checked = sxSet.filt; $('#sxFiltN').value = sxSet.filtN;
   $('#sxMax').value = Math.max(10, sxSet.max);
   const payIds = ['pp0', 'pp3', 'pp4', 'pp5', 'pp6'];
@@ -602,11 +619,13 @@
   }); });
   function renderModeBtns(){
     $('#sxModeBtns').querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.m === sxSet.mode));
-    $('#sxHotCard').hidden = ![2, 3].includes(sxSet.mode); $('#sxDelayCard').hidden = [2, 3].includes(sxSet.mode);
+    $('#sxHotCard').hidden = ![2, 3].includes(sxSet.mode); $('#sxDelayCard').hidden = [2, 3, 6].includes(sxSet.mode);
+    $('#sxColCard').hidden = sxSet.mode !== 6;
   }
   $('#sxModeBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-    sxSet.mode = +b.dataset.m; saveSx(); renderModeBtns(); sxSel = null; $('#sxGen').hidden = true;
+    sxSet.mode = +b.dataset.m; saveSx(); renderModeBtns(); renderSysBtns(); sxSel = null; $('#sxGen').hidden = true;
     if ([2, 3].includes(sxSet.mode)) renderHot();
+    if (sxSet.mode === 6) loadLong();
   }));
   // 20 πιο συχνά στις τελευταίες 5 κληρώσεις· ισοβαθμία: πιο πρόσφατη εμφάνιση, μετά νωρίτερη θέση στην κλήρωση
   function hotNumbers(){
@@ -676,13 +695,61 @@
     sxSel = { draw: { id: b.id, time: b.time, order: r.nums }, delay: null, mode: 3 };
     $('#sxGen').hidden = false; renderGen();
   }
+  // ---- Mode 6: οι 10 στήλες του ταμπλό ----
+  let longLoaded = 0;
+  async function loadLong(){
+    const want = sxSet.days;
+    if (longLoaded >= want){ renderCols(); return; }
+    $('#sxColInfo').textContent = `Φόρτωση ιστορικού ${want} ημερών…`;
+    try{
+      for (let k = 2; k < want; k++){
+        const ds = await fetchByDate(athensDate(new Date(Date.now() - k * 864e5)));
+        ds.forEach(d => cache.set(d.id, d));
+        $('#sxColInfo').textContent = `Φόρτωση ιστορικού… ${k + 1}/${want} ημέρες`;
+      }
+      longLoaded = want;
+    }catch(e){ status(e.message, 'err'); }
+    renderCols();
+  }
+  const colNums = c => [0, 1, 2, 3, 4, 5, 6, 7].map(r => c + 10 * r);
+  function colInfo(){
+    const H = sortedHist(), n = H.length;
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(c => {
+      const nums = colNums(c), lastK = {};
+      for (let j = n - 1; j >= 0; j--){
+        const s = new Set(H[j].nums); let k = 0; for (const x of nums) if (s.has(x)) k++;
+        if (k >= 4 && lastK[k] == null) lastK[k] = n - 1 - j;
+      }
+      const v = k => lastK[k];
+      const no5 = Math.min(...[5, 6, 7, 8].map(k => v(k) == null ? Infinity : v(k)));
+      return { c, nums, last: lastK, no5, n };
+    });
+  }
+  function renderCols(){
+    if (sxSet.mode !== 6) return;
+    const info = colInfo(), lo = sxSet.rmin, hi = sxSet.rmax, n = info[0] ? info[0].n : 0;
+    const cell = (v) => v == null ? `<span class="muted">&gt;${n}</span>` : v;
+    const inRule = r => r.no5 >= lo && r.no5 <= hi;
+    $('#sxColInfo').innerHTML = `Ιστορικό ${n} κληρώσεων. Οι αριθμοί δείχνουν πριν από πόσες κληρώσεις η στήλη έβγαλε ακριβώς τόσα (0 = στην τελευταία). <b>Κόκκινες</b>: χωρίς 5+ για ${lo}–${hi} κληρώσεις. Πατήστε μια στήλη.`;
+    $('#sxCols').innerHTML = '<tr><th>Στήλη</th><th>8</th><th>7</th><th>6</th><th>5</th><th>4</th><th>Χωρίς 5+</th></tr>' + info.map(r =>
+      `<tr class="tap${inRule(r) ? ' hot' : ''}" data-c="${r.c}"><td><b>${r.c % 10}</b><div class="muted" style="font-size:10px">${r.c}–${r.c + 70}</div></td><td>${cell(r.last[8])}</td><td>${cell(r.last[7])}</td><td>${cell(r.last[6])}</td><td>${cell(r.last[5])}</td><td>${cell(r.last[4])}</td><td><b>${r.no5 === Infinity ? '&gt;' + n : r.no5}</b></td></tr>`).join('');
+    $('#sxCols').querySelectorAll('tr[data-c]').forEach(tr => tr.addEventListener('click', () => {
+      const r = info.find(x => x.c === +tr.dataset.c), H = sortedHist(), last = H[H.length - 1];
+      sxSel = { draw: { id: last.id, time: last.time, order: r.nums }, delay: r.no5, mode: 6, col: r.c };
+      $('#sxGen').hidden = false; renderGen(); $('#sxGen').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
+  ['sxRuleMin', 'sxRuleMax'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderCols(); }));
+  $('#sxDays').addEventListener('change', () => { saveSx(); loadLong(); });
   function renderSysBtns(){
-    $('#sxSysBtns').innerHTML = SYSORDER.map(s => `<button type="button" data-s="${s}" class="${s === sxSet.sys ? 'on' : ''}">${SYSNAME[s]}<small>${SYS[s].length} ${kindName(SYS[s][0].length)}</small></button>`).join('');
+    if (!sysList().includes(sxSet.sys)) sxSet.sys = sysList()[0];
+    $('#sxSysBtns').innerHTML = sysList().map(s => `<button type="button" data-s="${s}" class="${s === sxSet.sys ? 'on' : ''}">${SYSNAME[s]}<small>${SYS[s].length} ${kindName(SYS[s][0].length)}</small></button>`).join('');
     $('#sxSysDesc').textContent = SYSDESC[sxSet.sys];
     $('#sxSysBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { sxSet.sys = b.dataset.s; saveSx(); renderSysBtns(); renderGen(); }));
   }
   function saveSx(){
     Object.assign(sxSet, { thr: +$('#sxThr').value || 7, common: +$('#sxCommon').value || 6, sys: sxSet.sys, mode: sxSet.mode, filt: $('#sxFilt').checked, filtN: Math.min(300, Math.max(5, +$('#sxFiltN').value || 100)),
+      rmin: +$('#sxRuleMin').value || 125, rmax: +$('#sxRuleMax').value || 150, days: Math.min(30, Math.max(2, +$('#sxDays').value || 7)),
       max: Math.max(10, +$('#sxMax').value || 10) });
     store.set(LS_SXSET, sxSet);
   }
@@ -711,7 +778,8 @@
       }
       $('#sxUpd').textContent = 'Τελευταία κλήρωση: ' + latestId + ' · ' + fmtTime(cache.get(latestId).time) +
         ' · ενημέρωση ' + new Date().toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
-      renderDelays(); renderTracks(); renderGen(); renderHot();
+      renderDelays(); renderTracks(); renderGen(); renderHot(); renderCols();
+      if (sxSet.mode === 6 && longLoaded < sxSet.days) loadLong();
     }catch(e){ $('#sxUpd').textContent = ''; status(e.message, 'err'); }
     finally{ sxBusy = false; $('#sxRefresh').disabled = false; }
   }
@@ -764,7 +832,7 @@
       const badPos = new Set(); T.forEach((p, c) => { if (st[c][0] > 1 || st[c][1] > 1) p.forEach(k => badPos.add(k - 1)); });
       let done = false;
       for (const i of badPos){
-        for (let j = 19; j >= 0 && !done; j--){
+        for (let j = ord.length - 1; j >= 0 && !done; j--){
           if (j === i) continue;
           swap(i, j); const s2 = colStats(T, M), v2 = violOf(s2);
           if (v2 < v){ st = s2; v = v2; done = true; } else swap(i, j);
@@ -791,6 +859,9 @@
       const o = sxSel.o;
       $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${sxSel.src.id} (${sxSel.mode === 4 ? 'ζεστά ζευγάρια' : 'κρύες εξάδες'})`;
       $('#sxSrc').innerHTML = `Mode ${sxSel.mode} · ${fmtTime(sxSel.src.time)} · καθυστέρηση ${sxSel.delay}<br>Θέσεις 1–20: ${o.note}<br><span style="font-size:12px">${o.legend}</span>`;
+    } else if (sxSel.mode === 6){
+      $('#sxGenTitle').textContent = `Στήλη ${sxSel.col % 10} του ταμπλό (${sxSel.base.join(' ')})`;
+      $('#sxSrc').innerHTML = `Mode 6 · χωρίς 5+ για ${sxSel.delay === Infinity ? 'πάνω από το ιστορικό' : sxSel.delay} κληρώσεις · τελευταία κλήρωση ${d.id}`;
     } else if (sxSel.mode === 3){
       $('#sxGenTitle').textContent = `Στήλες από τα κρύα νούμερα (έως κλήρωση ${d.id})`;
       $('#sxSrc').innerHTML = `Mode 3 · θέσεις 1–20: ${sxSel.base.join(' ')}`;
@@ -814,9 +885,9 @@
     if (!sxSel) return;
     const d = sxSel.draw;
     tracks.unshift({ id: uid(), src: d.id, srcTime: d.time, order: d.order, sys: sxSet.sys, mode: sxSel.mode || 1, startAfter: latestId,
-      max: Math.max(10, sxSet.max), common: sxSet.common, created: Date.now() });
+      max: Math.max(10, sxSet.max), common: sxSel.mode === 6 ? 5 : sxSet.common, created: Date.now() });
     store.set(LS_TRACK, tracks); renderTracks();
-    status(`${sxSel.mode >= 4 ? 'Η κλήρωση ' + d.id + ' (Mode ' + sxSel.mode + ') μπήκε' : sxSel.mode === 3 ? 'Τα κρύα νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : sxSel.mode === 2 ? 'Τα ζεστά νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : 'Η κλήρωση ' + d.id + ' μπήκε'} σε παρακολούθηση (σύστημα ${SYSNAME[sxSet.sys]}) από την κλήρωση ${latestId + 1}.`, 'ok');
+    status(`${sxSel.mode === 6 ? 'Η στήλη ' + (sxSel.col % 10) + ' μπήκε' : sxSel.mode >= 4 ? 'Η κλήρωση ' + d.id + ' (Mode ' + sxSel.mode + ') μπήκε' : sxSel.mode === 3 ? 'Τα κρύα νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : sxSel.mode === 2 ? 'Τα ζεστά νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : 'Η κλήρωση ' + d.id + ' μπήκε'} σε παρακολούθηση (σύστημα ${SYSNAME[sxSet.sys]}) από την κλήρωση ${latestId + 1}.`, 'ok');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
@@ -845,7 +916,7 @@
       const K = e.sx[0].length;
       const dist = [3, 4, 5, 6].map(k => e.rows.reduce((a, r) => a + r.hits.filter(h => h === k).length, 0));
       return `<div class="card">
-        <div class="row"><strong style="flex:1">${t.mode === 4 ? 'M4 · Κλήρωση ' + t.src + ' (ζευγάρια)' : t.mode === 5 ? 'M5 · Κλήρωση ' + t.src + ' (κρύες εξάδες)' : t.mode === 3 ? 'M3 · Κρύα έως ' + t.src : t.mode === 2 ? 'M2 · Ζεστά έως ' + t.src : 'M1 · Κλήρωση ' + t.src} · ${SYSNAME[t.sys]} (${e.sx.length})</strong>
+        <div class="row"><strong style="flex:1">${t.mode === 6 ? 'M6 · Στήλη ' + (t.order[0] % 10) + ' (' + t.order[0] + '–' + t.order[7] + ')' : t.mode === 4 ? 'M4 · Κλήρωση ' + t.src + ' (ζευγάρια)' : t.mode === 5 ? 'M5 · Κλήρωση ' + t.src + ' (κρύες εξάδες)' : t.mode === 3 ? 'M3 · Κρύα έως ' + t.src : t.mode === 2 ? 'M2 · Ζεστά έως ' + t.src : 'M1 · Κλήρωση ' + t.src} · ${SYSNAME[t.sys]} (${e.sx.length})</strong>
           <span class="badge${e.done ? '' : ' good'}">${e.done ? 'Τέλος' : 'Ενεργή'}</span></div>
         <div class="muted">${e.state}</div>
         <div class="stats">
@@ -856,7 +927,7 @@
           <div>3/${K} · 4/${K}<b>${dist[0]} · ${dist[1]}</b></div>
           <div>${K === 5 ? '5/5' : '5/6 · 6/6'}<b>${K === 5 ? dist[2] : dist[2] + ' · ' + dist[3]}</b></div>
         </div>
-        ${e.rows.length ? '<table class="t" style="margin-top:10px"><tr><th>Κλήρωση</th><th>Κοινά/20</th><th>Καλύτερη</th><th>Κέρδος</th></tr>' +
+        ${e.rows.length ? '<table class="t" style="margin-top:10px"><tr><th>Κλήρωση</th><th>Κοινά/' + t.order.length + '</th><th>Καλύτερη</th><th>Κέρδος</th></tr>' +
           e.rows.map(r => `<tr${r.c >= t.common ? ' class="hot"' : ''}><td>${r.d.id}<div class="muted" style="font-size:11px">${fmtTime(r.d.time)}</div></td><td>${r.c}</td><td>${r.best}/${K}</td><td>${eur(r.win)}</td></tr>`).join('') + '</table>' : ''}
         <details><summary>Οι ${kindName(K)}${last ? ' (επιτυχίες στην κλήρωση ' + last.d.id + ')' : ''}</summary>${sixesHtml(e.sx, last ? new Set(last.d.nums) : null)}</details>
         <div class="row" style="margin-top:10px"><div style="flex:1"></div><button class="btn small danger" data-del="${t.id}">Διαγραφή</button></div>
@@ -877,7 +948,7 @@
       const K = e.sx[0].length, topH = K === 5 ? 4 : 5;
       a.n++; a.draws += e.rows.length; a.cost += e.cost; a.won += e.won;
       a.top += e.rows.filter(r => r.best >= topH).length; a.any += e.rows.filter(r => r.win > 0).length; });
-    const keys = [1, 2, 3, 4, 5].flatMap(m => SYSORDER.map(s => s + '|' + m)).filter(k => agg[k]);
+    const keys = [1, 2, 3, 4, 5, 6].flatMap(m => SYSORDER.map(s => s + '|' + m)).filter(k => agg[k]);
     if (!keys.length){ $('#sxPerf').innerHTML = ''; return; }
     const tot = keys.reduce((a, s) => ({ cost: a.cost + agg[s].cost, won: a.won + agg[s].won }), { cost: 0, won: 0 });
     $('#sxPerf').innerHTML = `<div class="card"><strong>Συνολική απόδοση</strong>
