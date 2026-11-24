@@ -102,7 +102,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v10</span></h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v11</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -199,7 +199,8 @@
       <div class="row" style="margin-top:8px">
         <div style="flex:1"><label for="sxMax">Κληρώσεις παρακολούθησης (τουλάχιστον 10)</label><input type="number" id="sxMax" min="10" max="100" value="10"></div>
       </div>
-      <div id="sxOctWrap" hidden><label for="sxOctN">Πόσες οκτάδες (με το μεγαλύτερο διάστημα χωρίς 4+)</label><input type="number" id="sxOctN" min="1" max="10" value="3"></div>
+      <div id="sxOctWrap" hidden><label for="sxOctN">Πόσες οκτάδες (απλωμένες σε όλο το σύνολο)</label><input type="number" id="sxOctN" min="1" max="20" value="10">
+        <label class="row" style="color:var(--ink);margin-top:8px"><input type="checkbox" id="sxNeed5" style="width:20px;height:20px"> Μόνο οκτάδες με τουλάχιστον ένα 5/8 στις 100 κληρώσεις πριν την επιλεγμένη</label></div>
       <label class="row" style="color:var(--ink);margin-top:10px"><input type="checkbox" id="sxFilt" style="width:20px;height:20px">
         Φίλτρο ιστορικού: κάθε στήλη το πολύ ένα 6/6 και ένα 5/6 (πεντάδες: ένα 5/5 και ένα 4/5)</label>
       <div class="row"><div style="flex:1"><label for="sxFiltN">Έλεγχος στις τελευταίες κληρώσεις</label><input type="number" id="sxFiltN" min="5" max="300" value="100"></div></div>
@@ -592,10 +593,10 @@
   const SYSDESC = { A: '14 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 3/6', B: '30 εξάδες · αν βγουν 8 από τα 20 → σίγουρα ≥ 4/6',
     C: '49 εξάδες · αν βγουν 7 από τα 20 → σίγουρα ≥ 4/6', D: '90 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 4/6',
     E: '10 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 85% των περιπτώσεων',
-    OX: 'Εξάδες ώστε, αν μια οκτάδα φέρει 5+, να υπάρχει σίγουρα 5/6 (μέγιστη απόδοση)', OE: 'Λιγότερες εξάδες: αν μια οκτάδα φέρει 5+, σίγουρα ≥ 4/6',
+    OX: 'Αν κάποια από τις οκτάδες φέρει 5+, σίγουρα 5/6 (μέγιστη απόδοση)', OE: 'Οι λιγότερες εξάδες ώστε, αν κάποια από τις οκτάδες φέρει 5+, να υπάρχει σίγουρα ≥ 4/6',
     P5: '5 πεντάδες από τα 8 της στήλης · αν βγουν 5 από τα 8 → σίγουρα ≥ 4/5', S7: '7 εξάδες από τα 8 της στήλης · αν βγουν 4 από τα 8 → σίγουρα ≥ 4/6', F: '6 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 65% των περιπτώσεων' };
   const SYSORDER = ['E', 'F', 'A', 'B', 'C', 'D', 'P5', 'S7'];
-  const sysList = () => sxSet.mode === 5 ? ['OX', 'OE'] : sxSet.mode === 6 ? ['P5', 'S7'] : ['E', 'F', 'A', 'B', 'C', 'D'];
+  const sysList = () => sxSet.mode === 5 ? ['OE', 'OX'] : sxSet.mode === 6 ? ['P5', 'S7'] : ['E', 'F', 'A', 'B', 'C', 'D'];
   const kindName = k => k === 5 ? 'πεντάδες' : 'εξάδες';
   const LS_TRACK = 'kino.sx.tracks.v1', LS_PAY = 'kino.sx.pay.v1', LS_SXSET = 'kino.sx.set.v1';
   let tracks = store.get(LS_TRACK, []);
@@ -606,8 +607,8 @@
   const cache = new Map();           // drawId -> κλήρωση
   let latestId = 0, sxSel = null, sxTimer = null, sxBusy = false;
 
-  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1; if (sxSet.filt === undefined) sxSet.filt = true; if (!sxSet.filtN) sxSet.filtN = 100; if (!sxSet.rmin) sxSet.rmin = 125; if (!sxSet.rmax) sxSet.rmax = 150; if (!sxSet.days) sxSet.days = 7; if (!sxSet.octN) sxSet.octN = 3;
-  $('#sxOctN').value = sxSet.octN;
+  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1; if (sxSet.filt === undefined) sxSet.filt = true; if (!sxSet.filtN) sxSet.filtN = 100; if (!sxSet.rmin) sxSet.rmin = 125; if (!sxSet.rmax) sxSet.rmax = 150; if (!sxSet.days) sxSet.days = 7; if (!sxSet.octN || sxSet.octN === 3) sxSet.octN = 10; if (sxSet.need5 === undefined) sxSet.need5 = true;
+  $('#sxOctN').value = sxSet.octN; $('#sxNeed5').checked = sxSet.need5;
   $('#sxRuleMin').value = sxSet.rmin; $('#sxRuleMax').value = sxSet.rmax; $('#sxDays').value = sxSet.days;
   $('#sxFilt').checked = sxSet.filt; $('#sxFiltN').value = sxSet.filtN;
   $('#sxMax').value = Math.max(10, sxSet.max);
@@ -753,12 +754,12 @@
   }
   function saveSx(){
     Object.assign(sxSet, { thr: +$('#sxThr').value || 7, common: +$('#sxCommon').value || 6, sys: sxSet.sys, mode: sxSet.mode, filt: $('#sxFilt').checked, filtN: Math.min(300, Math.max(5, +$('#sxFiltN').value || 100)),
-      rmin: +$('#sxRuleMin').value || 125, rmax: +$('#sxRuleMax').value || 150, days: Math.min(30, Math.max(2, +$('#sxDays').value || 7)), octN: Math.min(10, Math.max(1, +$('#sxOctN').value || 3)),
+      rmin: +$('#sxRuleMin').value || 125, rmax: +$('#sxRuleMax').value || 150, days: Math.min(30, Math.max(2, +$('#sxDays').value || 7)), octN: Math.min(20, Math.max(1, +$('#sxOctN').value || 10)), need5: $('#sxNeed5').checked,
       max: Math.max(10, +$('#sxMax').value || 10) });
     store.set(LS_SXSET, sxSet);
   }
   ['sxThr', 'sxCommon'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderDelays(); renderTracks(); }));
-  ['sxMax', 'sxFilt', 'sxFiltN', 'sxOctN'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
+  ['sxMax', 'sxFilt', 'sxFiltN', 'sxOctN', 'sxNeed5'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
 
   const common = (a, b) => { const s = new Set(b); let c = 0; for (const x of a) if (s.has(x)) c++; return c; };
   const eur = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2).replace('.', ',') + '€';
@@ -850,45 +851,118 @@
   }
   // ---- Mode 5: κρύες οκτάδες της κλήρωσης ----
   let OCTM = null, PC = null;
-  function oct5(src, nOct, lvl){
-    if (!OCTM){
-      PC = new Uint8Array(1 << 20); for (let i = 1; i < (1 << 20); i++) PC[i] = PC[i >> 1] + (i & 1);
-      OCTM = new Int32Array(125970); let n = 0;
-      const rec = (st, k, m) => { if (k === 8){ OCTM[n++] = m; return; } for (let i = st; i <= 20 - (8 - k); i++) rec(i + 1, k + 1, m | (1 << i)); };
-      rec(0, 0, 0);
+  let SIXM = null;
+  function initOct(){
+    if (OCTM) return;
+    PC = new Uint8Array(1 << 20); for (let i = 1; i < (1 << 20); i++) PC[i] = PC[i >> 1] + (i & 1);
+    OCTM = new Int32Array(125970); SIXM = new Int32Array(38760); let n = 0, s = 0;
+    const rec = (st, k, m, K, out) => { if (k === K){ out(m); return; } for (let i = st; i <= 20 - (K - k); i++) rec(i + 1, k + 1, m | (1 << i), K, out); };
+    rec(0, 0, 0, 8, m => { OCTM[n++] = m; }); rec(0, 0, 0, 6, m => { SIXM[s++] = m; });
+  }
+  // Ελάχιστη κάλυψη: lazy greedy με τυχαίες ισοβαθμίες (αρκετές επαναλήψεις) + αφαίρεση περιττών εξάδων
+  function coverMin(targets, ok, tries = 6){
+    const T = targets.length; let best = null;
+    for (let r = 0; r < tries; r++){
+      const unc = new Uint8Array(T).fill(1); let left = T; const chosen = [];
+      const jit = new Float32Array(SIXM.length); for (let i = 0; i < jit.length; i++) jit[i] = r ? Math.random() * 0.9 : 0;
+      const key = new Float64Array(SIXM.length);
+      for (let i = 0; i < SIXM.length; i++){ let g = 0; const c = SIXM[i]; for (let j = 0; j < T; j++) if (ok(c, targets[j])) g++; key[i] = g + jit[i]; }
+      const heap = Array.from(key.keys()).filter(i => key[i] >= 1).sort((x, y) => key[y] - key[x]);
+      // απλή «lazy» επιλογή: ξαναϋπολογίζουμε μόνο τις κορυφαίες
+      while (left > 0){
+        let bi = -1, bk = -1;
+        for (let q = 0; q < heap.length; q++){
+          const i = heap[q]; if (key[i] <= bk) break;
+          let g = 0; const c = SIXM[i]; for (let j = 0; j < T; j++) if (unc[j] && ok(c, targets[j])) g++;
+          key[i] = g + jit[i]; if (key[i] > bk){ bk = key[i]; bi = i; }
+        }
+        heap.sort((x, y) => key[y] - key[x]);
+        if (bi < 0 || bk < 1) break;
+        chosen.push(SIXM[bi]); for (let j = 0; j < T; j++) if (unc[j] && ok(SIXM[bi], targets[j])){ unc[j] = 0; left--; }
+      }
+      // αφαίρεση περιττών
+      const cnt = new Int16Array(T); for (const c of chosen) for (let j = 0; j < T; j++) if (ok(c, targets[j])) cnt[j]++;
+      for (let q = chosen.length - 1; q >= 0; q--){
+        const c = chosen[q]; let need = false; for (let j = 0; j < T; j++) if (ok(c, targets[j]) && cnt[j] === 1){ need = true; break; }
+        if (!need){ for (let j = 0; j < T; j++) if (ok(c, targets[j])) cnt[j]--; chosen.splice(q, 1); }
+      }
+      if (!best || chosen.length < best.length) best = chosen;
     }
-    const nums = src.order, W = sortedHist().slice(-100).reverse();
-    const masks = W.map(d => { const s = new Set(d.nums); let m = 0; nums.forEach((x, i) => { if (s.has(x)) m |= 1 << i; }); return m; });
-    const run = new Int16Array(OCTM.length); let R = 0;
-    for (let k = 0; k < OCTM.length; k++){ const o = OCTM[k]; let r = 0; for (const m of masks){ if (PC[o & m] >= 4) break; r++; } run[k] = r; if (r > R) R = r; }
-    let nAtMax = 0; for (let k = 0; k < run.length; k++) if (run[k] === R) nAtMax++;
-    const idx = Array.from(run.keys()).sort((a, b) => run[b] - run[a] || a - b).slice(0, nOct);
+    return best;
+  }
+  // Βελτίωση: «χαλάμε» 2–4 εξάδες και ξανακαλύπτουμε άπληστα· κρατάμε όποια λύση δεν είναι μεγαλύτερη
+  function improveCover(sol, targets, ok, iters = 400){
+    const T = targets.length; let cur = sol.slice(), best = sol.slice();
+    const covers = (S) => { const cnt = new Int16Array(T); for (const c of S) for (let j = 0; j < T; j++) if (ok(c, targets[j])) cnt[j]++; return cnt; };
+    for (let it = 0; it < iters; it++){
+      const S = cur.slice(), k = 2 + (it % 3);
+      for (let r = 0; r < k && S.length; r++) S.splice(Math.floor(Math.random() * S.length), 1);
+      const cnt = covers(S); const unc = []; for (let j = 0; j < T; j++) if (!cnt[j]) unc.push(targets[j]);
+      while (unc.length){
+        let bi = -1, bg = 0, bj = 0;
+        for (let i = 0; i < SIXM.length; i++){ const c = SIXM[i]; let g = 0; for (const t of unc) if (ok(c, t)) g++; const jj = g + Math.random() * 0.9; if (jj > bg + bj){ bg = g; bj = jj - g; bi = i; } }
+        if (bi < 0) break;
+        S.push(SIXM[bi]); for (let q = unc.length - 1; q >= 0; q--) if (ok(SIXM[bi], unc[q])) unc.splice(q, 1);
+      }
+      // αφαίρεση περιττών
+      const c2 = covers(S);
+      for (let q = S.length - 1; q >= 0; q--){ let need = false; for (let j = 0; j < T; j++) if (c2[j] === 1 && ok(S[q], targets[j])){ need = true; break; }
+        if (!need){ for (let j = 0; j < T; j++) if (ok(S[q], targets[j])) c2[j]--; S.splice(q, 1); } }
+      if (S.length <= cur.length) cur = S;
+      if (cur.length < best.length) best = cur.slice();
+    }
+    return best;
+  }
+  function oct5(src, nOct, lvl){
+    initOct();
+    const nums = src.order, Hall = sortedHist(), iS = Hall.findIndex(d => d.id === src.id);
+    const mk = d => { const s = new Set(d.nums); let m = 0; nums.forEach((x, i) => { if (s.has(x)) m |= 1 << i; }); return m; };
+    const after = Hall.slice(iS + 1).reverse().map(mk), before = Hall.slice(Math.max(0, iS - 100), iS).map(mk);
+    let cold = [];
+    for (let k = 0; k < OCTM.length; k++){ const o = OCTM[k]; let okk = true; for (const m of after) if (PC[o & m] >= 4){ okk = false; break; } if (okk) cold.push(o); }
+    const nCold = cold.length;
+    let with5 = cold;
+    if (sxSet.need5 && before.length) with5 = cold.filter(o => before.some(m => PC[o & m] >= 5));
+    let pool = with5, fallback = false, R = after.length;
+    if (!pool.length){   // καμία οκτάδα σε όλο το διάστημα: οι πιο «κρύες»
+      fallback = true; const run = new Int16Array(OCTM.length); R = 0;
+      for (let k = 0; k < OCTM.length; k++){ const o = OCTM[k]; let r = 0; for (const m of after){ if (PC[o & m] >= 4) break; r++; } run[k] = r; if (r > R) R = r; }
+      pool = []; for (let k = 0; k < OCTM.length; k++) if (run[k] === R) pool.push(OCTM[k]);
+    }
+    const n = pool.length, take = Math.min(nOct, n);
+    const pick = take <= 1 ? [pool[0]] : Array.from({ length: take }, (_, i) => pool[Math.round(i * (n - 1) / (take - 1))]);
     const posOf = m => { const p = []; for (let i = 0; i < 20; i++) if (m >> i & 1) p.push(i); return p; };
     const subs = (p, k) => { const out = []; const rec = (st, c, m) => { if (c === k){ out.push(m); return; } for (let i = st; i < p.length; i++) rec(i + 1, c + 1, m | (1 << p[i])); }; rec(0, 0, 0); return out; };
-    const octs = idx.map(k => ({ mask: OCTM[k], run: run[k], nums: posOf(OCTM[k]).map(i => nums[i]) }));
-    const targets = [...new Set(octs.flatMap(o => subs(posOf(o.mask), 5)))];
-    const cands = [...new Set(octs.flatMap(o => subs(posOf(o.mask), 6)))];
+    const octs = pick.map(m => ({ mask: m, nums: posOf(m).map(i => nums[i]) }));
+    const targets = [...new Set(pick.flatMap(m => subs(posOf(m), 5)))];
     const ok = lvl === 'OE' ? (c, t) => PC[c & t] >= 4 : (c, t) => (c & t) === t;
-    let unc = targets.slice(); const chosen = [];
-    while (unc.length){
-      let best = cands[0], bn = -1;
-      for (const c of cands){ let n = 0; for (const t of unc) if (ok(c, t)) n++; if (n > bn){ bn = n; best = c; } }
-      chosen.push(best); unc = unc.filter(t => !ok(best, t));
-    }
-    const cols = chosen.map(c => posOf(c).map(i => nums[i]));
-    return { octs, R, nAtMax, cols, W: W.length };
+    const colsM = coverMin(targets, ok, lvl === 'OE' ? 4 : 2), cols = colsM.map(c => posOf(c).map(i => nums[i]));
+    return { octs, nCold, nPool: n, fallback, R, after: after.length, cols, colsM, targets: targets.length, T: targets, ok, toNums: c => posOf(c).map(i => nums[i]), posOf };
   }
   function renderGen5(){
     if (!sxSel.own){ sxSel.draw = { ...sxSel.draw, order: sxSel.draw.order.slice() }; sxSel.own = true; }
-    const o = oct5(sxSel.src, sxSet.octN, sxSet.sys); sxSel.cols = o.cols;
+    const key5 = [sxSel.src.id, sxSet.sys, sxSet.octN, sxSet.need5, latestId].join('|');
+    let o = sxSel.o5 && sxSel.o5.key === key5 ? sxSel.o5 : oct5(sxSel.src, sxSet.octN, sxSet.sys);
+    o.key = key5; sxSel.o5 = o; sxSel.cols = o.cols;
     $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${sxSel.src.id} (κρύες οκτάδες)`;
-    $('#sxSrc').innerHTML = `Mode 5 · ${fmtTime(sxSel.src.time)} · καθυστέρηση ${sxSel.delay}<br>` +
-      (o.R < o.W ? `Καμία οκτάδα δεν έμεινε χωρίς 4+ και στις ${o.W} κληρώσεις· κρατήθηκαν οι πιο «κρύες». ` : '') +
-      `Μέγιστο διάστημα χωρίς 4+: <b>${o.R}</b> κληρώσεις (${o.nAtMax} οκτάδ${o.nAtMax === 1 ? 'α' : 'ες'}).<br>` +
-      o.octs.map((x, i) => `Οκτάδα ${i + 1}: <b>${x.nums.join(' ')}</b> · ${x.run} κληρώσεις χωρίς 4+`).join('<br>');
-    $('#sxFiltInfo').textContent = 'Στο Mode 5 οι εξάδες βγαίνουν από τις οκτάδες· το φίλτρο ιστορικού δεν εφαρμόζεται.';
+    $('#sxSrc').innerHTML = `Mode 5 · ${fmtTime(sxSel.src.time)} · καθυστέρηση ${sxSel.delay} · ${o.after} κληρώσεις από τότε<br>` +
+      `Οκτάδες χωρίς 4+ από την τελευταία κλήρωση μέχρι την επιλεγμένη: <b>${o.nCold}</b>` +
+      (sxSet.need5 ? ` · με τουλάχιστον ένα 5/8 στις 100 προηγούμενες: <b>${o.fallback ? 0 : o.nPool}</b>` : '') + '<br>' +
+      (o.fallback ? `<span style="color:var(--danger)">Καμία κατάλληλη· κρατήθηκαν οι ${o.nPool} πιο «κρύες» (${o.R} κληρώσεις χωρίς 4+).</span><br>` : '') +
+      `Επιλέχθηκαν ${o.octs.length} απλωμένες σε όλο το σύνολο (1η, …, τελευταία):<br>` +
+      o.octs.map((x, i) => `${i + 1}. <b>${x.nums.join(' ')}</b>`).join('<br>');
+    $('#sxFiltInfo').textContent = `${o.targets} πεντάδες-στόχοι. Το φίλτρο ιστορικού δεν εφαρμόζεται στο Mode 5.`;
     $('#sxCost').textContent = `${o.cols.length} εξάδες · ${eur(o.cols.length * pay.price)} ανά κλήρωση · έως ${eur(o.cols.length * pay.price * sxSet.max)} για ${sxSet.max} κληρώσεις`;
-    $('#sxList').innerHTML = sixesHtml(o.cols);
+    $('#sxList').innerHTML = sixesHtml(o.cols) +
+      `<div class="row" style="margin-top:8px"><button class="btn small secondary" id="sxMore">Ψάξε για λιγότερες εξάδες</button><span class="muted" id="sxMoreInfo" style="flex:1"></span></div>`;
+    $('#sxMore').addEventListener('click', () => {
+      $('#sxMore').disabled = true; $('#sxMoreInfo').textContent = 'Αναζήτηση…';
+      setTimeout(() => {
+        const before = o.cols.length, cm = improveCover(o.colsM, o.T, o.ok, 300), c = cm.map(o.toNums);
+        if (c.length < before){ o.cols = c; o.colsM = cm; renderGen5(); $('#sxMoreInfo').textContent = `Βρέθηκαν ${c.length} (από ${before}).`; }
+        else { $('#sxMore').disabled = false; $('#sxMoreInfo').textContent = `Δεν βρέθηκε λιγότερες από ${before}.`; }
+      }, 50);
+    });
   }
   function renderGen(){
     if (!sxSel) return;
