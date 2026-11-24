@@ -102,7 +102,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v9</span></h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v10</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -158,7 +158,7 @@
         <button type="button" data-m="2">Mode 2<small>Ζεστά τελευταίων 5</small></button>
         <button type="button" data-m="3">Mode 3<small>Πιο κρύα νούμερα</small></button>
         <button type="button" data-m="4">Mode 4<small>Κλήρωση: ζεστά ζευγάρια</small></button>
-        <button type="button" data-m="5">Mode 5<small>Κλήρωση: κρύες εξάδες</small></button>
+        <button type="button" data-m="5">Mode 5<small>Κλήρωση: κρύες οκτάδες</small></button>
         <button type="button" data-m="6">Mode 6<small>Στήλες ταμπλό (8 αρ.)</small></button>
       </div>
       <label>Σύστημα</label>
@@ -199,6 +199,7 @@
       <div class="row" style="margin-top:8px">
         <div style="flex:1"><label for="sxMax">Κληρώσεις παρακολούθησης (τουλάχιστον 10)</label><input type="number" id="sxMax" min="10" max="100" value="10"></div>
       </div>
+      <div id="sxOctWrap" hidden><label for="sxOctN">Πόσες οκτάδες (με το μεγαλύτερο διάστημα χωρίς 4+)</label><input type="number" id="sxOctN" min="1" max="10" value="3"></div>
       <label class="row" style="color:var(--ink);margin-top:10px"><input type="checkbox" id="sxFilt" style="width:20px;height:20px">
         Φίλτρο ιστορικού: κάθε στήλη το πολύ ένα 6/6 και ένα 5/6 (πεντάδες: ένα 5/5 και ένα 4/5)</label>
       <div class="row"><div style="flex:1"><label for="sxFiltN">Έλεγχος στις τελευταίες κληρώσεις</label><input type="number" id="sxFiltN" min="5" max="300" value="100"></div></div>
@@ -584,15 +585,17 @@
 ;
   const F10 = [[1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15],[16,17,18,19,20],[1,2,6,11,16],[3,4,7,12,17],[5,8,9,13,18],[10,14,15,19,20],[1,8,9,12,19],[2,7,14,15,18]];
   const SYS = { A: SXR['6_3'], B: SXR['8_4'], C: SXR['7_4'], D: SXR['6_4'], E: F10, F: F10.slice(0, 6),
+    OX: [[1,2,3,4,5,6]], OE: [[1,2,3,4,5,6]],
     P5: [[1,2,3,6,8],[1,2,4,6,8],[1,3,4,5,7],[2,3,4,6,8],[2,5,6,7,8]],
     S7: [[1,2,3,4,5,7],[1,2,3,5,6,8],[1,2,4,5,6,7],[1,2,4,5,7,8],[1,3,4,5,6,8],[1,3,5,6,7,8],[2,3,4,6,7,8]] };
-  const SYSNAME = { A: 'Α', B: 'Β', C: 'Γ', D: 'Δ', E: '5×10', F: '5×6', P5: 'Πεντάδες', S7: 'Εξάδες' };
+  const SYSNAME = { A: 'Α', B: 'Β', C: 'Γ', D: 'Δ', E: '5×10', F: '5×6', P5: 'Πεντάδες', S7: 'Εξάδες', OX: '5+ → 5/6', OE: '5+ → 4/6' };
   const SYSDESC = { A: '14 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 3/6', B: '30 εξάδες · αν βγουν 8 από τα 20 → σίγουρα ≥ 4/6',
     C: '49 εξάδες · αν βγουν 7 από τα 20 → σίγουρα ≥ 4/6', D: '90 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 4/6',
     E: '10 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 85% των περιπτώσεων',
+    OX: 'Εξάδες ώστε, αν μια οκτάδα φέρει 5+, να υπάρχει σίγουρα 5/6 (μέγιστη απόδοση)', OE: 'Λιγότερες εξάδες: αν μια οκτάδα φέρει 5+, σίγουρα ≥ 4/6',
     P5: '5 πεντάδες από τα 8 της στήλης · αν βγουν 5 από τα 8 → σίγουρα ≥ 4/5', S7: '7 εξάδες από τα 8 της στήλης · αν βγουν 4 από τα 8 → σίγουρα ≥ 4/6', F: '6 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 65% των περιπτώσεων' };
   const SYSORDER = ['E', 'F', 'A', 'B', 'C', 'D', 'P5', 'S7'];
-  const sysList = () => sxSet.mode === 6 ? ['P5', 'S7'] : ['E', 'F', 'A', 'B', 'C', 'D'];
+  const sysList = () => sxSet.mode === 5 ? ['OX', 'OE'] : sxSet.mode === 6 ? ['P5', 'S7'] : ['E', 'F', 'A', 'B', 'C', 'D'];
   const kindName = k => k === 5 ? 'πεντάδες' : 'εξάδες';
   const LS_TRACK = 'kino.sx.tracks.v1', LS_PAY = 'kino.sx.pay.v1', LS_SXSET = 'kino.sx.set.v1';
   let tracks = store.get(LS_TRACK, []);
@@ -603,7 +606,8 @@
   const cache = new Map();           // drawId -> κλήρωση
   let latestId = 0, sxSel = null, sxTimer = null, sxBusy = false;
 
-  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1; if (sxSet.filt === undefined) sxSet.filt = true; if (!sxSet.filtN) sxSet.filtN = 100; if (!sxSet.rmin) sxSet.rmin = 125; if (!sxSet.rmax) sxSet.rmax = 150; if (!sxSet.days) sxSet.days = 7;
+  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1; if (sxSet.filt === undefined) sxSet.filt = true; if (!sxSet.filtN) sxSet.filtN = 100; if (!sxSet.rmin) sxSet.rmin = 125; if (!sxSet.rmax) sxSet.rmax = 150; if (!sxSet.days) sxSet.days = 7; if (!sxSet.octN) sxSet.octN = 3;
+  $('#sxOctN').value = sxSet.octN;
   $('#sxRuleMin').value = sxSet.rmin; $('#sxRuleMax').value = sxSet.rmax; $('#sxDays').value = sxSet.days;
   $('#sxFilt').checked = sxSet.filt; $('#sxFiltN').value = sxSet.filtN;
   $('#sxMax').value = Math.max(10, sxSet.max);
@@ -743,18 +747,18 @@
   $('#sxDays').addEventListener('change', () => { saveSx(); loadLong(); });
   function renderSysBtns(){
     if (!sysList().includes(sxSet.sys)) sxSet.sys = sysList()[0];
-    $('#sxSysBtns').innerHTML = sysList().map(s => `<button type="button" data-s="${s}" class="${s === sxSet.sys ? 'on' : ''}">${SYSNAME[s]}<small>${SYS[s].length} ${kindName(SYS[s][0].length)}</small></button>`).join('');
+    $('#sxSysBtns').innerHTML = sysList().map(s => `<button type="button" data-s="${s}" class="${s === sxSet.sys ? 'on' : ''}">${SYSNAME[s]}<small>${s[0] === 'O' ? (s === 'OX' ? 'μέγιστη απόδοση' : 'οικονομικό') : SYS[s].length + ' ' + kindName(SYS[s][0].length)}</small></button>`).join('');
     $('#sxSysDesc').textContent = SYSDESC[sxSet.sys];
     $('#sxSysBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { sxSet.sys = b.dataset.s; saveSx(); renderSysBtns(); renderGen(); }));
   }
   function saveSx(){
     Object.assign(sxSet, { thr: +$('#sxThr').value || 7, common: +$('#sxCommon').value || 6, sys: sxSet.sys, mode: sxSet.mode, filt: $('#sxFilt').checked, filtN: Math.min(300, Math.max(5, +$('#sxFiltN').value || 100)),
-      rmin: +$('#sxRuleMin').value || 125, rmax: +$('#sxRuleMax').value || 150, days: Math.min(30, Math.max(2, +$('#sxDays').value || 7)),
+      rmin: +$('#sxRuleMin').value || 125, rmax: +$('#sxRuleMax').value || 150, days: Math.min(30, Math.max(2, +$('#sxDays').value || 7)), octN: Math.min(10, Math.max(1, +$('#sxOctN').value || 3)),
       max: Math.max(10, +$('#sxMax').value || 10) });
     store.set(LS_SXSET, sxSet);
   }
   ['sxThr', 'sxCommon'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderDelays(); renderTracks(); }));
-  ['sxMax', 'sxFilt', 'sxFiltN'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
+  ['sxMax', 'sxFilt', 'sxFiltN', 'sxOctN'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
 
   const common = (a, b) => { const s = new Set(b); let c = 0; for (const x of a) if (s.has(x)) c++; return c; };
   const eur = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2).replace('.', ',') + '€';
@@ -844,10 +848,54 @@
     const moved = ord.filter((x, i) => x !== base[i]).length;
     return { order: ord, st, bad: st.filter(([f, m]) => f > 1 || m > 1).length, moved, n: H.length };
   }
+  // ---- Mode 5: κρύες οκτάδες της κλήρωσης ----
+  let OCTM = null, PC = null;
+  function oct5(src, nOct, lvl){
+    if (!OCTM){
+      PC = new Uint8Array(1 << 20); for (let i = 1; i < (1 << 20); i++) PC[i] = PC[i >> 1] + (i & 1);
+      OCTM = new Int32Array(125970); let n = 0;
+      const rec = (st, k, m) => { if (k === 8){ OCTM[n++] = m; return; } for (let i = st; i <= 20 - (8 - k); i++) rec(i + 1, k + 1, m | (1 << i)); };
+      rec(0, 0, 0);
+    }
+    const nums = src.order, W = sortedHist().slice(-100).reverse();
+    const masks = W.map(d => { const s = new Set(d.nums); let m = 0; nums.forEach((x, i) => { if (s.has(x)) m |= 1 << i; }); return m; });
+    const run = new Int16Array(OCTM.length); let R = 0;
+    for (let k = 0; k < OCTM.length; k++){ const o = OCTM[k]; let r = 0; for (const m of masks){ if (PC[o & m] >= 4) break; r++; } run[k] = r; if (r > R) R = r; }
+    let nAtMax = 0; for (let k = 0; k < run.length; k++) if (run[k] === R) nAtMax++;
+    const idx = Array.from(run.keys()).sort((a, b) => run[b] - run[a] || a - b).slice(0, nOct);
+    const posOf = m => { const p = []; for (let i = 0; i < 20; i++) if (m >> i & 1) p.push(i); return p; };
+    const subs = (p, k) => { const out = []; const rec = (st, c, m) => { if (c === k){ out.push(m); return; } for (let i = st; i < p.length; i++) rec(i + 1, c + 1, m | (1 << p[i])); }; rec(0, 0, 0); return out; };
+    const octs = idx.map(k => ({ mask: OCTM[k], run: run[k], nums: posOf(OCTM[k]).map(i => nums[i]) }));
+    const targets = [...new Set(octs.flatMap(o => subs(posOf(o.mask), 5)))];
+    const cands = [...new Set(octs.flatMap(o => subs(posOf(o.mask), 6)))];
+    const ok = lvl === 'OE' ? (c, t) => PC[c & t] >= 4 : (c, t) => (c & t) === t;
+    let unc = targets.slice(); const chosen = [];
+    while (unc.length){
+      let best = cands[0], bn = -1;
+      for (const c of cands){ let n = 0; for (const t of unc) if (ok(c, t)) n++; if (n > bn){ bn = n; best = c; } }
+      chosen.push(best); unc = unc.filter(t => !ok(best, t));
+    }
+    const cols = chosen.map(c => posOf(c).map(i => nums[i]));
+    return { octs, R, nAtMax, cols, W: W.length };
+  }
+  function renderGen5(){
+    if (!sxSel.own){ sxSel.draw = { ...sxSel.draw, order: sxSel.draw.order.slice() }; sxSel.own = true; }
+    const o = oct5(sxSel.src, sxSet.octN, sxSet.sys); sxSel.cols = o.cols;
+    $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${sxSel.src.id} (κρύες οκτάδες)`;
+    $('#sxSrc').innerHTML = `Mode 5 · ${fmtTime(sxSel.src.time)} · καθυστέρηση ${sxSel.delay}<br>` +
+      (o.R < o.W ? `Καμία οκτάδα δεν έμεινε χωρίς 4+ και στις ${o.W} κληρώσεις· κρατήθηκαν οι πιο «κρύες». ` : '') +
+      `Μέγιστο διάστημα χωρίς 4+: <b>${o.R}</b> κληρώσεις (${o.nAtMax} οκτάδ${o.nAtMax === 1 ? 'α' : 'ες'}).<br>` +
+      o.octs.map((x, i) => `Οκτάδα ${i + 1}: <b>${x.nums.join(' ')}</b> · ${x.run} κληρώσεις χωρίς 4+`).join('<br>');
+    $('#sxFiltInfo').textContent = 'Στο Mode 5 οι εξάδες βγαίνουν από τις οκτάδες· το φίλτρο ιστορικού δεν εφαρμόζεται.';
+    $('#sxCost').textContent = `${o.cols.length} εξάδες · ${eur(o.cols.length * pay.price)} ανά κλήρωση · έως ${eur(o.cols.length * pay.price * sxSet.max)} για ${sxSet.max} κληρώσεις`;
+    $('#sxList').innerHTML = sixesHtml(o.cols);
+  }
   function renderGen(){
     if (!sxSel) return;
+    $('#sxOctWrap').hidden = sxSel.mode !== 5;
+    if (sxSel.mode === 5){ renderGen5(); return; }
     if (!sxSel.own){ sxSel.base = sxSel.draw.order.slice(); sxSel.draw = { ...sxSel.draw, order: sxSel.base.slice() }; sxSel.own = true; }
-    if (sxSel.mode === 4 || sxSel.mode === 5){ sxSel.o = sxSel.mode === 4 ? order4(sxSel.src) : order5(sxSel.src); sxSel.base = sxSel.o.order; }
+    if (sxSel.mode === 4){ sxSel.o = order4(sxSel.src); sxSel.base = sxSel.o.order; }
     let F = null;
     if (sxSet.filt){ F = fixOrder(sxSel.base, sxSet.sys); sxSel.draw.order = F.order; } else sxSel.draw.order = sxSel.base.slice();
     const d = sxSel.draw, sx = makeSixes(d.order, sxSet.sys), K0 = sx[0].length;
@@ -877,7 +925,7 @@
   }
   $('#sxCopy').addEventListener('click', async () => {
     if (!sxSel) return;
-    const txt = makeSixes(sxSel.draw.order, sxSet.sys).map(s => s.join(' ')).join('\n');
+    const txt = (sxSel.mode === 5 && sxSel.cols ? sxSel.cols : makeSixes(sxSel.draw.order, sxSet.sys)).map(s => s.join(' ')).join('\n');
     try{ await navigator.clipboard.writeText(txt); $('#sxCopy').textContent = 'Αντιγράφηκε ✓'; }catch{ $('#sxCopy').textContent = 'Δεν επιτρέπεται'; }
     setTimeout(() => $('#sxCopy').textContent = 'Αντιγραφή', 2000);
   });
@@ -885,14 +933,14 @@
     if (!sxSel) return;
     const d = sxSel.draw;
     tracks.unshift({ id: uid(), src: d.id, srcTime: d.time, order: d.order, sys: sxSet.sys, mode: sxSel.mode || 1, startAfter: latestId,
-      max: Math.max(10, sxSet.max), common: sxSel.mode === 6 ? 5 : sxSet.common, created: Date.now() });
+      max: Math.max(10, sxSet.max), common: sxSel.mode === 6 ? 5 : sxSet.common, created: Date.now(), cols: sxSel.mode === 5 ? sxSel.cols : undefined });
     store.set(LS_TRACK, tracks); renderTracks();
     status(`${sxSel.mode === 6 ? 'Η στήλη ' + (sxSel.col % 10) + ' μπήκε' : sxSel.mode >= 4 ? 'Η κλήρωση ' + d.id + ' (Mode ' + sxSel.mode + ') μπήκε' : sxSel.mode === 3 ? 'Τα κρύα νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : sxSel.mode === 2 ? 'Τα ζεστά νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : 'Η κλήρωση ' + d.id + ' μπήκε'} σε παρακολούθηση (σύστημα ${SYSNAME[sxSet.sys]}) από την κλήρωση ${latestId + 1}.`, 'ok');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   function evalTrack(t){
-    const sx = makeSixes(t.order, t.sys), PT = payFor(sx[0].length), cost1 = sx.length * pay.price, rows = [];
+    const sx = t.cols || makeSixes(t.order, t.sys), PT = payFor(sx[0].length), cost1 = sx.length * pay.price, rows = [];
     const max = Math.max(10, t.max);
     let state = 'Σε αναμονή της κλήρωσης ' + (t.startAfter + 1);
     for (let id = t.startAfter + 1; id <= t.startAfter + max; id++){
@@ -916,7 +964,7 @@
       const K = e.sx[0].length;
       const dist = [3, 4, 5, 6].map(k => e.rows.reduce((a, r) => a + r.hits.filter(h => h === k).length, 0));
       return `<div class="card">
-        <div class="row"><strong style="flex:1">${t.mode === 6 ? 'M6 · Στήλη ' + (t.order[0] % 10) + ' (' + t.order[0] + '–' + t.order[7] + ')' : t.mode === 4 ? 'M4 · Κλήρωση ' + t.src + ' (ζευγάρια)' : t.mode === 5 ? 'M5 · Κλήρωση ' + t.src + ' (κρύες εξάδες)' : t.mode === 3 ? 'M3 · Κρύα έως ' + t.src : t.mode === 2 ? 'M2 · Ζεστά έως ' + t.src : 'M1 · Κλήρωση ' + t.src} · ${SYSNAME[t.sys]} (${e.sx.length})</strong>
+        <div class="row"><strong style="flex:1">${t.mode === 6 ? 'M6 · Στήλη ' + (t.order[0] % 10) + ' (' + t.order[0] + '–' + t.order[7] + ')' : t.mode === 4 ? 'M4 · Κλήρωση ' + t.src + ' (ζευγάρια)' : t.mode === 5 ? 'M5 · Κλήρωση ' + t.src + (t.cols ? ' (κρύες οκτάδες)' : ' (κρύες εξάδες)') : t.mode === 3 ? 'M3 · Κρύα έως ' + t.src : t.mode === 2 ? 'M2 · Ζεστά έως ' + t.src : 'M1 · Κλήρωση ' + t.src} · ${SYSNAME[t.sys]} (${e.sx.length})</strong>
           <span class="badge${e.done ? '' : ' good'}">${e.done ? 'Τέλος' : 'Ενεργή'}</span></div>
         <div class="muted">${e.state}</div>
         <div class="stats">
