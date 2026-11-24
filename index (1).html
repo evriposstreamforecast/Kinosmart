@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ΚΙΝΟ Έλεγχος</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ΚΙΝΟ">
+<!-- έκδοση 2026-11-22c -->
+<meta name="theme-color" content="#0f3d2e">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{
+    --bg:#f4f6f5; --card:#fff; --ink:#15211c; --muted:#66756e; --line:#dfe5e2;
+    --brand:#0f3d2e; --brand2:#1d6b4f; --hit:#f2b705; --hitInk:#3a2c00; --danger:#b3261e;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0d1311; --card:#17201c; --ink:#e8efeb; --muted:#93a39b; --line:#2a3631;
+      --brand:#0f3d2e; --brand2:#2f8f6a; }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{background:var(--brand); color:#fff; padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;
+    position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:10px}
+  header h1{font-size:19px; margin:0; flex:1}
+  header button{background:rgba(255,255,255,.15); color:#fff; border:0; border-radius:10px; padding:8px 12px; font-size:15px}
+  main{padding:12px 12px calc(env(safe-area-inset-bottom) + 90px); max-width:640px; margin:0 auto}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px}
+  .row{display:flex; align-items:center; gap:8px}
+  .muted{color:var(--muted); font-size:14px}
+  .balls{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .ball{width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-weight:600; font-size:14px;
+    background:var(--bg); border:1px solid var(--line)}
+  .ball.hit{background:var(--hit); color:var(--hitInk); border-color:var(--hit)}
+  .ball.bonus{outline:2px solid var(--danger); outline-offset:1px}
+  .btn{border:0; border-radius:12px; padding:12px 16px; font-size:16px; font-weight:600; background:var(--brand2); color:#fff}
+  .btn.secondary{background:var(--bg); color:var(--ink); border:1px solid var(--line)}
+  .btn.danger{background:transparent; color:var(--danger); border:1px solid var(--line)}
+  .btn.small{padding:7px 11px; font-size:14px; font-weight:500}
+  .btn:disabled{opacity:.5}
+  .fab{position:fixed; right:16px; bottom:calc(env(safe-area-inset-bottom) + 16px); z-index:6;
+    border-radius:999px; padding:14px 20px; box-shadow:0 4px 14px rgba(0,0,0,.25)}
+  .tabs{display:flex; gap:6px; margin-bottom:12px}
+  .tabs button{flex:1; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:15px}
+  .tabs button.on{background:var(--brand2); color:#fff; border-color:var(--brand2)}
+  .badge{display:inline-block; padding:2px 9px; border-radius:999px; font-size:13px; font-weight:600; background:var(--bg); border:1px solid var(--line)}
+  .badge.good{background:var(--hit); color:var(--hitInk); border-color:var(--hit)}
+  .grid{display:grid; grid-template-columns:repeat(10,1fr); gap:5px; margin:10px 0}
+  .grid button{aspect-ratio:1; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-size:14px; font-weight:600; padding:0}
+  .grid button.sel{background:var(--brand2); color:#fff; border-color:var(--brand2)}
+  input[type=text],input[type=number],select,textarea{width:100%; font-size:16px; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink)}
+  textarea{min-height:110px; font-family:ui-monospace,Menlo,monospace; font-size:13px}
+  label{display:block; font-size:14px; color:var(--muted); margin:10px 0 4px}
+  .sheet{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:20; display:none; align-items:flex-end; justify-content:center}
+  .sheet.open{display:flex}
+  .sheet .panel{background:var(--card); width:100%; max-width:640px; max-height:92vh; overflow:auto; border-radius:18px 18px 0 0;
+    padding:16px 16px calc(env(safe-area-inset-bottom) + 16px)}
+  .sheet h2{margin:0 0 6px; font-size:18px}
+  .status{padding:10px 12px; border-radius:10px; margin-bottom:12px; font-size:14px; display:none}
+  .status.show{display:block}
+  .status.err{background:#fde8e6; color:#7a1b14}
+  .status.ok{background:#e4f4ec; color:#0f3d2e}
+  .drawline{padding:10px 0; border-top:1px solid var(--line)}
+  .board{display:grid; grid-template-columns:repeat(10,1fr); gap:3px; margin-top:8px; max-width:420px}
+  .board span{aspect-ratio:1; display:grid; place-items:center; border-radius:50%; font-size:12px; font-weight:600; color:var(--muted); border:1px solid var(--line)}
+  .board span.d{background:#f2c200; color:#3a2c00; border-color:#f2c200}
+  .board span.b{background:#d32f2f; color:#fff; border-color:#d32f2f}
+  .board span.s{background:#2e9e4f; color:#fff; border-color:#2e9e4f}
+  .board span.s.d{box-shadow:inset 0 0 0 3px #f2c200}
+  .legend{display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:6px}
+  .legend i{display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:4px; vertical-align:-1px}
+  .drawline:first-child{border-top:0}
+  .empty{text-align:center; padding:30px 10px; color:var(--muted)}
+  details summary{cursor:pointer; color:var(--muted); font-size:14px; margin-top:8px}
+  .tabs button{padding:10px 4px; font-size:14px}
+  table.t{border-collapse:collapse; width:100%; font-size:14px}
+  table.t th,table.t td{border-bottom:1px solid var(--line); padding:7px 4px; text-align:center}
+  table.t th{color:var(--muted); font-size:12px; font-weight:600}
+  table.t tr.hot td{background:rgba(179,38,30,.12)}
+  table.t tr.tap{cursor:pointer}
+  .sixrow{display:flex; align-items:center; gap:6px; padding:5px 0; border-top:1px solid var(--line)}
+  .sixrow:first-child{border-top:0}
+  .sixrow .balls{margin-top:0; gap:4px; flex:1}
+  .sixrow .ball{width:30px; height:30px; font-size:13px}
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px}
+  .stats div{background:var(--bg); border-radius:10px; padding:7px 8px; font-size:12px; color:var(--muted)}
+  .stats b{display:block; font-size:16px; color:var(--ink)}
+  .pos{color:#1d6b4f} .neg{color:var(--danger)}
+  .pay{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
+  .pay input{padding:8px 6px; font-size:15px}
+  .seg{display:grid; grid-template-columns:repeat(3,1fr); gap:6px}
+  .seg button{padding:9px 4px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-size:14px; font-weight:600}
+  .seg button small{display:block; font-weight:400; font-size:11px; color:var(--muted)}
+  .seg button.on{background:var(--brand2); color:#fff; border-color:var(--brand2)}
+  .seg button.on small{color:#e4f4ec}
+</style>
+</head>
+<body>
+<header>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v10</span></h1>
+  <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
+</header>
+
+<main>
+  <div id="status" class="status"></div>
+
+  <div class="tabs">
+    <button data-tab="tickets" class="on">Δελτία</button>
+    <button data-tab="check">Έλεγχος</button>
+    <button data-tab="draws">Κληρώσεις</button>
+    <button data-tab="sixes">Προτάσεις</button>
+  </div>
+
+  <!-- ΔΕΛΤΙΑ -->
+  <section id="tab-tickets"></section>
+
+  <!-- ΕΛΕΓΧΟΣ -->
+  <section id="tab-check" hidden>
+    <div class="card">
+      <label for="range">Κληρώσεις για έλεγχο</label>
+      <select id="range">
+        <option value="last:1">Τελευταία κλήρωση</option>
+        <option value="last:10">Τελευταίες 10</option>
+        <option value="last:50" selected>Τελευταίες 50</option>
+        <option value="today">Όλες της σημερινής ημέρας</option>
+        <option value="date">Συγκεκριμένη ημερομηνία…</option>
+      </select>
+      <div id="dateWrap" hidden>
+        <label for="date">Ημερομηνία</label>
+        <input type="date" id="date">
+      </div>
+      <label class="row" style="color:var(--ink);margin-top:12px">
+        <input type="checkbox" id="onlyWins" checked style="width:20px;height:20px"> Δείξε μόνο κληρώσεις με επιτυχίες
+      </label>
+      <div style="margin-top:12px"><button class="btn" id="btnCheck" style="width:100%">Έλεγχος δελτίων</button></div>
+    </div>
+    <div id="results"></div>
+  </section>
+
+  <!-- ΕΞΑΔΕΣ -->
+  <section id="tab-sixes" hidden>
+    <div class="card">
+      <div class="row"><strong style="flex:1">Παρακολουθήσεις</strong><button class="btn small" id="sxRefresh">Ανανέωση</button></div>
+      <div class="muted" id="sxUpd" style="margin-top:4px">Ελέγχονται αυτόματα με κάθε νέα κλήρωση όσο η εφαρμογή είναι ανοιχτή.</div>
+    </div>
+    <div id="sxPerf"></div>
+    <div id="sxTracks"></div>
+
+    <div class="card">
+      <strong>Τρόπος επιλογής των 20 νούμερων</strong>
+      <div class="seg" id="sxModeBtns" style="margin-top:8px">
+        <button type="button" data-m="1">Mode 1<small>Καθυστερημένη κλήρωση</small></button>
+        <button type="button" data-m="2">Mode 2<small>Ζεστά τελευταίων 5</small></button>
+        <button type="button" data-m="3">Mode 3<small>Πιο κρύα νούμερα</small></button>
+        <button type="button" data-m="4">Mode 4<small>Κλήρωση: ζεστά ζευγάρια</small></button>
+        <button type="button" data-m="5">Mode 5<small>Κλήρωση: κρύες οκτάδες</small></button>
+        <button type="button" data-m="6">Mode 6<small>Στήλες ταμπλό (8 αρ.)</small></button>
+      </div>
+      <label>Σύστημα</label>
+      <div class="seg" id="sxSysBtns"></div>
+      <div class="muted" id="sxSysDesc" style="margin-top:6px"></div>
+    </div>
+
+    <div class="card" id="sxHotCard" hidden>
+      <strong id="sxHotTitle">Ζεστά νούμερα</strong>
+      <div class="muted" id="sxHotInfo" style="margin-top:4px"></div>
+      <div id="sxHot"></div>
+    </div>
+
+    <div class="card" id="sxColCard" hidden>
+      <strong>Οι 10 στήλες του ταμπλό: πόσες κληρώσεις πριν έβγαλαν 8, 7, 6, 5, 4 από τα 8</strong>
+      <div class="row" style="margin-top:6px">
+        <div style="flex:1"><label for="sxRuleMin">Κανόνας: χωρίς 5+ από</label><input type="number" id="sxRuleMin" min="1" value="125"></div>
+        <div style="flex:1"><label for="sxRuleMax">έως κληρώσεις</label><input type="number" id="sxRuleMax" min="1" value="150"></div>
+        <div style="flex:1"><label for="sxDays">Ημέρες ιστορικού</label><input type="number" id="sxDays" min="2" max="30" value="7"></div>
+      </div>
+      <div class="muted" id="sxColInfo" style="margin-top:8px"></div>
+      <div style="overflow-x:auto"><table class="t" id="sxCols" style="margin-top:6px"></table></div>
+    </div>
+
+    <div class="card" id="sxDelayCard">
+      <strong>Κληρώσεις που καθυστερούν</strong>
+      <div class="row" style="margin-top:6px">
+        <div style="flex:1"><label for="sxThr">Όριο καθυστέρησης</label><input type="number" id="sxThr" min="1" value="7"></div>
+        <div style="flex:1"><label for="sxCommon">Κοινά για «σπάσιμο»</label><input type="number" id="sxCommon" min="1" max="20" value="6"></div>
+      </div>
+      <div class="muted" id="sxInfo" style="margin-top:8px"></div>
+      <table class="t" id="sxDelays" style="margin-top:6px"></table>
+    </div>
+
+    <div class="card" id="sxGen" hidden>
+      <strong id="sxGenTitle">Εξάδες</strong>
+      <div class="muted" id="sxSrc"></div>
+      <div class="row" style="margin-top:8px">
+        <div style="flex:1"><label for="sxMax">Κληρώσεις παρακολούθησης (τουλάχιστον 10)</label><input type="number" id="sxMax" min="10" max="100" value="10"></div>
+      </div>
+      <div id="sxOctWrap" hidden><label for="sxOctN">Πόσες οκτάδες (με το μεγαλύτερο διάστημα χωρίς 4+)</label><input type="number" id="sxOctN" min="1" max="10" value="3"></div>
+      <label class="row" style="color:var(--ink);margin-top:10px"><input type="checkbox" id="sxFilt" style="width:20px;height:20px">
+        Φίλτρο ιστορικού: κάθε στήλη το πολύ ένα 6/6 και ένα 5/6 (πεντάδες: ένα 5/5 και ένα 4/5)</label>
+      <div class="row"><div style="flex:1"><label for="sxFiltN">Έλεγχος στις τελευταίες κληρώσεις</label><input type="number" id="sxFiltN" min="5" max="300" value="100"></div></div>
+      <div class="muted" id="sxFiltInfo" style="margin-top:6px"></div>
+      <div class="muted" id="sxCost" style="margin-top:6px"></div>
+      <div id="sxList" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn small secondary" id="sxCopy">Αντιγραφή</button>
+        <div style="flex:1"></div>
+        <button class="btn" id="sxTrack">Παρακολούθηση από την επόμενη</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <details><summary>Κέρδη ανά στήλη (επεξεργάσιμα)</summary>
+        <label>Εξάδα: τιμή στήλης € · κέρδος για 3 · 4 · 5 · 6</label>
+        <div class="pay"><input type="number" step="0.01" id="pp0"><input type="number" step="0.01" id="pp3"><input type="number" step="0.01" id="pp4"><input type="number" step="0.01" id="pp5"><input type="number" step="0.01" id="pp6"></div>
+        <label>Πεντάδα: κέρδος για 3 · 4 · 5 (ίδια τιμή στήλης)</label>
+        <div class="pay"><input type="number" step="0.01" id="pq3"><input type="number" step="0.01" id="pq4"><input type="number" step="0.01" id="pq5"></div>
+      </details>
+      <div class="muted" style="margin-top:10px">Σε 11.112 κληρώσεις η καθυστέρηση δεν άλλαξε την πιθανότητα 6+ (37,3% έναντι 37,4%). Τα συστήματα δίνουν εγγύηση, όχι πλεονέκτημα: αναμενόμενη απόδοση περίπου −30%.</div>
+    </div>
+  </section>
+
+  <!-- ΚΛΗΡΩΣΕΙΣ -->
+  <section id="tab-draws" hidden>
+    <div class="card row">
+      <div style="flex:1" class="muted">Οι πιο πρόσφατες κληρώσεις</div>
+      <button class="btn small" id="btnReload">Ανανέωση</button>
+    </div>
+    <div id="drawsList"></div>
+  </section>
+</main>
+
+<button class="btn fab" id="btnAdd">＋ Νέο δελτίο</button>
+
+<!-- Φόρμα δελτίου -->
+<div class="sheet" id="ticketSheet">
+  <div class="panel">
+    <h2 id="ticketTitle">Νέο δελτίο</h2>
+    <div class="muted">Διάλεξε από 1 έως 12 αριθμούς (1–80).</div>
+    <label for="tName">Όνομα (προαιρετικό)</label>
+    <input type="text" id="tName" placeholder="π.χ. Τα σταθερά μου">
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1"><span id="selCount" class="badge">0 / 12</span></div>
+      <button class="btn small secondary" id="btnRandom">Τυχαίοι</button>
+      <button class="btn small secondary" id="btnClear">Καθαρισμός</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="row">
+      <button class="btn danger" id="btnDelete" hidden>Διαγραφή</button>
+      <div style="flex:1"></div>
+      <button class="btn secondary" id="btnCancel">Άκυρο</button>
+      <button class="btn" id="btnSave">Αποθήκευση</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ρυθμίσεις -->
+<div class="sheet" id="settingsSheet">
+  <div class="panel">
+    <h2>Ρυθμίσεις</h2>
+    <label for="apiBase">Διεύθυνση API κληρώσεων</label>
+    <input type="text" id="apiBase" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="muted" style="margin-top:6px">Προεπιλογή: <code>https://api.opap.gr</code>. Αν οι κληρώσεις δεν φορτώνουν, βάλε εδώ τη διεύθυνση του Cloudflare Worker σου (δες README).</div>
+    <div class="row" style="margin-top:10px"><button class="btn small secondary" id="btnResetApi">Επαναφορά προεπιλογής</button></div>
+
+    <label>Αντίγραφο ασφαλείας δελτίων</label>
+    <textarea id="backup" placeholder='Πάτα «Εξαγωγή» για να πάρεις τα δελτία σου ως κείμενο, ή επικόλλησε εδώ κείμενο και πάτα «Εισαγωγή».'></textarea>
+    <div class="row" style="margin-top:8px; flex-wrap:wrap">
+      <button class="btn small secondary" id="btnExport">Εξαγωγή</button>
+      <button class="btn small secondary" id="btnCopy">Αντιγραφή</button>
+      <button class="btn small secondary" id="btnImport">Εισαγωγή</button>
+    </div>
+    <div style="margin-top:16px; text-align:right"><button class="btn" id="btnCloseSettings">Κλείσιμο</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const GAME_KINO = 1100;
+  const DEFAULT_API = 'https://api.opap.gr';
+  const MAX_PICK = 12, MAX_NUM = 80;
+  const LS_TICKETS = 'kino.tickets.v1', LS_API = 'kino.api.v1';
+
+  const $ = s => document.querySelector(s);
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch{ return d; } },
+    set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch{ return false; } }
+  };
+
+  let tickets = store.get(LS_TICKETS, []);
+  let apiBase = store.get(LS_API, DEFAULT_API);
+  let editing = null;        // id του δελτίου που επεξεργαζόμαστε
+  let picked = new Set();
+
+  // ---------- Βοηθητικά ----------
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  const sortNums = a => [...a].sort((x,y) => x-y);
+  const fmtTime = ms => new Date(ms).toLocaleString('el-GR', {timeZone:'Europe/Athens', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+  const athensDate = (d = new Date()) => new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Athens'}).format(d); // YYYY-MM-DD
+
+  function status(msg, kind = 'ok'){
+    const el = $('#status');
+    if(!msg){ el.className = 'status'; el.textContent = ''; return; }
+    el.className = 'status show ' + kind; el.textContent = msg;
+  }
+  function saveTickets(){
+    if(!store.set(LS_TICKETS, tickets)) status('Δεν ήταν δυνατή η αποθήκευση στη συσκευή.', 'err');
+  }
+  function ballsHtml(nums, hits, bonus){
+    return '<div class="balls">' + nums.map(n =>
+      `<span class="ball${hits && hits.has(n) ? ' hit' : ''}${bonus === n ? ' bonus' : ''}">${n}</span>`).join('') + '</div>';
+  }
+
+  // ---------- Tabs ----------
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    ['tickets','check','draws','sixes'].forEach(t => $('#tab-' + t).hidden = (t !== b.dataset.tab));
+    $('#btnAdd').hidden = b.dataset.tab !== 'tickets';
+    status('');
+    if(b.dataset.tab === 'draws' && !$('#drawsList').dataset.loaded) loadRecent();
+    if(b.dataset.tab === 'sixes') sxLoad();
+  }));
+
+  // ---------- Δελτία ----------
+  function renderTickets(){
+    const el = $('#tab-tickets');
+    if(!tickets.length){
+      el.innerHTML = '<div class="card empty">Δεν έχεις αποθηκευμένα δελτία.<br>Πάτα «＋ Νέο δελτίο» για να προσθέσεις.</div>';
+      return;
+    }
+    el.innerHTML = tickets.map(t => `
+      <div class="card" data-id="${t.id}">
+        <div class="row">
+          <strong style="flex:1">${esc(t.name || 'Δελτίο')}</strong>
+          <span class="badge">${t.nums.length} αριθμ.</span>
+          <button class="btn small secondary" data-edit="${t.id}">Επεξ.</button>
+        </div>
+        ${ballsHtml(sortNums(t.nums))}
+      </div>`).join('');
+    el.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openTicket(b.dataset.edit)));
+  }
+
+  function buildGrid(){
+    const g = $('#grid'); g.innerHTML = '';
+    for(let n = 1; n <= MAX_NUM; n++){
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = n; b.dataset.n = n;
+      b.addEventListener('click', () => {
+        if(picked.has(n)) picked.delete(n);
+        else if(picked.size < MAX_PICK) picked.add(n);
+        else { flashCount(); return; }
+        refreshGrid();
+      });
+      g.appendChild(b);
+    }
+  }
+  function refreshGrid(){
+    $('#grid').querySelectorAll('button').forEach(b => b.classList.toggle('sel', picked.has(+b.dataset.n)));
+    $('#selCount').textContent = `${picked.size} / ${MAX_PICK}`;
+    $('#selCount').classList.toggle('good', picked.size > 0);
+    $('#btnSave').disabled = picked.size === 0;
+  }
+  function flashCount(){
+    const c = $('#selCount'); c.style.background = 'var(--danger)'; c.style.color = '#fff';
+    setTimeout(() => { c.style.background = ''; c.style.color = ''; }, 500);
+  }
+  function openTicket(id){
+    editing = id || null;
+    const t = id ? tickets.find(x => x.id === id) : null;
+    picked = new Set(t ? t.nums : []);
+    $('#tName').value = t ? (t.name || '') : '';
+    $('#ticketTitle').textContent = t ? 'Επεξεργασία δελτίου' : 'Νέο δελτίο';
+    $('#btnDelete').hidden = !t;
+    refreshGrid();
+    $('#ticketSheet').classList.add('open');
+  }
+  const closeTicket = () => $('#ticketSheet').classList.remove('open');
+
+  $('#btnAdd').addEventListener('click', () => openTicket(null));
+  $('#btnCancel').addEventListener('click', closeTicket);
+  $('#btnClear').addEventListener('click', () => { picked.clear(); refreshGrid(); });
+  $('#btnRandom').addEventListener('click', () => {
+    const k = picked.size || 5; picked.clear();
+    while(picked.size < k) picked.add(1 + Math.floor(Math.random() * MAX_NUM));
+    refreshGrid();
+  });
+  $('#btnSave').addEventListener('click', () => {
+    if(!picked.size) return;
+    const data = { name: $('#tName').value.trim(), nums: sortNums(picked) };
+    if(editing){ Object.assign(tickets.find(x => x.id === editing), data); }
+    else tickets.push({ id: uid(), ...data });
+    saveTickets(); renderTickets(); closeTicket();
+  });
+  let delArmed = false;
+  $('#btnDelete').addEventListener('click', e => {
+    if(!delArmed){ delArmed = true; e.target.textContent = 'Σίγουρα;'; setTimeout(() => { delArmed = false; e.target.textContent = 'Διαγραφή'; }, 3000); return; }
+    delArmed = false; e.target.textContent = 'Διαγραφή';
+    tickets = tickets.filter(x => x.id !== editing);
+    saveTickets(); renderTickets(); closeTicket();
+  });
+
+  // ---------- API Allwyn (ΟΠΑΠ) ----------
+  async function apiGet(path){
+    const url = apiBase.replace(/\/+$/, '') + path;
+    let res;
+    try { res = await fetch(url, { headers: { 'Accept': 'application/json' } }); }
+    catch(e){
+      throw new Error('Δεν ήταν δυνατή η σύνδεση με το API κληρώσεων. Αν έχεις internet, μάλλον το API δεν επιτρέπει κλήσεις από browser — βάλε τη διεύθυνση του Cloudflare Worker στις Ρυθμίσεις (⚙︎).');
+    }
+    if(!res.ok) throw new Error(`Το API απάντησε με σφάλμα ${res.status}.`);
+    return res.json();
+  }
+  // Μετατρέπει μια κλήρωση από το API σε {id, time, nums[], bonus}
+  function normDraw(d){
+    if(!d) return null;
+    const wn = d.winningNumbers || {};
+    const list = (wn.list || wn.numbers || []).map(Number).filter(n => n >= 1 && n <= MAX_NUM);
+    if(!list.length) return null;
+    const bonus = Array.isArray(wn.bonus) && wn.bonus.length ? Number(wn.bonus[0]) : null;
+    return { id: d.drawId, time: d.drawTime, nums: sortNums(list), order: list.slice(0, 20), bonus, second: findSecond(d),
+      keys: Object.keys(d).concat(Object.keys(wn).map(k => 'winningNumbers.' + k)) };
+  }
+  // 2η ευκαιρία: ψάχνει πεδίο με όνομα σαν second/chance/extra που περιέχει 3 νούμερα 1–80
+  function findSecond(obj, depth = 0, keyHit = false){
+    if (!obj || typeof obj !== 'object' || depth > 4) return null;
+    if (Array.isArray(obj)){
+      const nums = obj.map(Number);
+      if (keyHit && nums.length === 3 && nums.every(n => Number.isInteger(n) && n >= 1 && n <= MAX_NUM)) return nums;
+      for (const v of obj){ const r = findSecond(v, depth + 1, keyHit); if (r) return r; }
+      return null;
+    }
+    for (const [k, v] of Object.entries(obj)){
+      const hit = keyHit || /second|chance|extra|2nd|ευκαιρ/i.test(k);
+      const r = findSecond(v, depth + 1, hit); if (r) return r;
+    }
+    return null;
+  }
+  async function fetchLast(){
+    const j = await apiGet(`/draws/v3.0/${GAME_KINO}/last-result-and-active`);
+    return normDraw(j.last);
+  }
+  async function fetchById(id){
+    return normDraw(await apiGet(`/draws/v3.0/${GAME_KINO}/${id}`));
+  }
+  async function fetchByDate(ymd){
+    const out = [];
+    for(let page = 0; page < 5; page++){
+      const j = await apiGet(`/draws/v3.0/${GAME_KINO}/draw-date/${ymd}/${ymd}?limit=200&page=${page}`);
+      const items = Array.isArray(j) ? j : (j.content || []);
+      items.forEach(d => { const n = normDraw(d); if(n) out.push(n); });
+      if(Array.isArray(j) || j.last || !j.totalPages || page + 1 >= j.totalPages) break;
+    }
+    return out.sort((a,b) => b.id - a.id);
+  }
+  // Τελευταίες N κληρώσεις: παίρνει τη σημερινή μέρα (και τη χθεσινή αν χρειάζεται)
+  async function fetchLastN(n){
+    if(n === 1){ const d = await fetchLast(); return d ? [d] : []; }
+    let draws = await fetchByDate(athensDate());
+    if(draws.length < n){
+      const y = new Date(Date.now() - 864e5);
+      draws = draws.concat(await fetchByDate(athensDate(y)));
+    }
+    if(!draws.length){ const d = await fetchLast(); if(d) draws = [d]; }
+    return draws.slice(0, n);
+  }
+
+  // ---------- Έλεγχος ----------
+  $('#range').addEventListener('change', e => { $('#dateWrap').hidden = e.target.value !== 'date'; });
+  $('#date').value = athensDate();
+
+  $('#btnCheck').addEventListener('click', async () => {
+    if(!tickets.length){ status('Πρόσθεσε πρώτα ένα δελτίο.', 'err'); return; }
+    const btn = $('#btnCheck'); btn.disabled = true; btn.textContent = 'Φόρτωση κληρώσεων…';
+    status(''); $('#results').innerHTML = '';
+    try{
+      const r = $('#range').value;
+      let draws;
+      if(r.startsWith('last:')) draws = await fetchLastN(+r.split(':')[1]);
+      else if(r === 'today') draws = await fetchByDate(athensDate());
+      else draws = await fetchByDate($('#date').value);
+      if(!draws.length){ status('Δεν βρέθηκαν κληρώσεις για αυτή την επιλογή.', 'err'); return; }
+      renderResults(draws);
+    }catch(e){ status(e.message, 'err'); }
+    finally{ btn.disabled = false; btn.textContent = 'Έλεγχος δελτίων'; }
+  });
+
+  function renderResults(draws){
+    const onlyWins = $('#onlyWins').checked;
+    const first = draws[draws.length - 1], last = draws[0];
+    let html = `<div class="muted" style="margin:0 4px 10px">Ελέγχθηκαν ${draws.length} κληρώσεις` +
+      (draws.length > 1 ? ` (αρ. ${first.id} – ${last.id})` : ` (αρ. ${last.id}, ${fmtTime(last.time)})`) + '</div>';
+
+    tickets.forEach(t => {
+      const rows = draws.map(d => {
+        const win = new Set(d.nums);
+        const hits = new Set(t.nums.filter(n => win.has(n)));
+        return { d, hits, bonusHit: d.bonus != null && t.nums.includes(d.bonus) };
+      });
+      const best = Math.max(...rows.map(x => x.hits.size));
+      const shown = onlyWins ? rows.filter(x => x.hits.size > 0) : rows;
+      html += `<div class="card">
+        <div class="row"><strong style="flex:1">${esc(t.name || 'Δελτίο')}</strong>
+          <span class="badge${best > 0 ? ' good' : ''}">Καλύτερο: ${best}/${t.nums.length}</span></div>
+        ${ballsHtml(sortNums(t.nums))}
+        ${shown.length ? '<div style="margin-top:10px">' + shown.slice(0, 100).map(x => `
+          <div class="drawline">
+            <div class="row"><span style="flex:1" class="muted">Κλήρωση ${x.d.id} · ${fmtTime(x.d.time)}</span>
+              <span class="badge${x.hits.size ? ' good' : ''}">${x.hits.size}/${t.nums.length}</span></div>
+            ${x.bonusHit ? '<div class="muted" style="color:var(--danger)">Πέτυχες και το ΚΙΝΟ Bonus (' + x.d.bonus + ')</div>' : ''}
+            ${ballsHtml(x.d.nums, x.hits, x.d.bonus)}
+          </div>`).join('') + '</div>'
+          : '<div class="muted" style="margin-top:8px">Καμία επιτυχία σε αυτές τις κληρώσεις.</div>'}
+      </div>`;
+    });
+    $('#results').innerHTML = html;
+  }
+
+  // ---------- Πρόσφατες κληρώσεις ----------
+  async function loadRecent(){
+    const el = $('#drawsList');
+    el.innerHTML = '<div class="card empty">Φόρτωση…</div>';
+    try{
+      const draws = await fetchLastN(20);
+      el.dataset.loaded = '1';
+      const anySecond = draws.some(d => d.second);
+      el.innerHTML = '<div class="card"><div class="legend" style="margin-top:0"><span><i style="background:#f2c200"></i>Κληρωθέντα</span><span><i style="background:#d32f2f"></i>KINO Bonus</span><span><i style="background:#2e9e4f"></i>2η ευκαιρία</span></div>' +
+        (anySecond ? '' : `<div class="muted" style="margin-top:6px;font-size:12px">Τα νούμερα της 2ης ευκαιρίας δεν βρέθηκαν στα δεδομένα του API. Πεδία που δίνει: ${esc((draws[0] && draws[0].keys || []).join(', '))}</div>`) +
+        draws.map(d => `
+        <div class="drawline"><div class="muted">Κλήρωση ${d.id} · ${fmtTime(d.time)}${d.bonus != null ? ' · Bonus: <b style="color:#d32f2f">' + d.bonus + '</b>' : ''}${d.second ? ' · 2η ευκαιρία: <b style="color:#2e9e4f">' + d.second.join(' ') + '</b>' : ''}</div>
+        ${boardHtml(d)}</div>`).join('') + '</div>';
+    }catch(e){ el.innerHTML = ''; status(e.message, 'err'); }
+  }
+  function boardHtml(d){
+    const S = new Set(d.nums), X = new Set(d.second || []);
+    let out = '<div class="board">';
+    for (let n = 1; n <= MAX_NUM; n++){
+      const cls = n === d.bonus ? 'b' : X.has(n) ? ('s' + (S.has(n) ? ' d' : '')) : S.has(n) ? 'd' : '';
+      out += `<span class="${cls}">${n}</span>`;
+    }
+    return out + '</div>';
+  }
+  $('#btnReload').addEventListener('click', loadRecent);
+
+  // ---------- Ρυθμίσεις ----------
+  $('#btnSettings').addEventListener('click', () => { $('#apiBase').value = apiBase; $('#backup').value = ''; $('#settingsSheet').classList.add('open'); });
+  $('#btnCloseSettings').addEventListener('click', () => {
+    const v = $('#apiBase').value.trim() || DEFAULT_API;
+    if(v !== apiBase){ apiBase = v; store.set(LS_API, apiBase); delete $('#drawsList').dataset.loaded; }
+    $('#settingsSheet').classList.remove('open');
+  });
+  $('#btnResetApi').addEventListener('click', () => { $('#apiBase').value = DEFAULT_API; });
+  $('#btnExport').addEventListener('click', () => { $('#backup').value = JSON.stringify(tickets); });
+  $('#btnCopy').addEventListener('click', async () => {
+    const ta = $('#backup'); if(!ta.value) ta.value = JSON.stringify(tickets);
+    try{ await navigator.clipboard.writeText(ta.value); $('#btnCopy').textContent = 'Αντιγράφηκε ✓'; }
+    catch{ ta.select(); $('#btnCopy').textContent = 'Επίλεξε & αντίγραψε'; }
+    setTimeout(() => $('#btnCopy').textContent = 'Αντιγραφή', 2000);
+  });
+  $('#btnImport').addEventListener('click', () => {
+    try{
+      const data = JSON.parse($('#backup').value);
+      if(!Array.isArray(data)) throw 0;
+      const clean = data.map(t => ({
+        id: t.id || uid(), name: String(t.name || ''),
+        nums: sortNums(new Set((t.nums || t).map(Number).filter(n => n >= 1 && n <= MAX_NUM))).slice(0, MAX_PICK)
+      })).filter(t => t.nums.length);
+      tickets = clean; saveTickets(); renderTickets();
+      $('#btnImport').textContent = `Εισήχθησαν ${clean.length} ✓`;
+    }catch{ $('#btnImport').textContent = 'Μη έγκυρο κείμενο'; }
+    setTimeout(() => $('#btnImport').textContent = 'Εισαγωγή', 2500);
+  });
+
+  // κλείσιμο φύλλων με πάτημα έξω
+  document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => { if(e.target === s) s.classList.remove('open'); }));
+
+
+  // ---------- ΕΞΑΔΕΣ (συστήματα κάλυψης) ----------
+  const SXR = {"6_3":[[1,2,3,4,5,6],[7,8,9,10,11,12],[13,14,15,16,17,18],[1,2,7,13,19,20],[3,4,8,14,19,20],[5,6,9,10,15,16],[5,6,11,12,17,18],[1,3,9,10,17,18],[2,4,11,12,15,16],[5,6,7,8,13,14],[1,2,8,14,19,20],[3,4,7,13,19,20],[1,2,3,4,7,13],[1,2,9,10,19,20]],"8_4":[[1,2,3,4,5,6],[7,8,9,10,11,12],[13,14,15,16,17,18],[1,2,7,13,19,20],[3,4,8,14,19,20],[5,6,9,10,15,19],[5,11,12,16,17,20],[1,6,8,11,16,18],[2,3,9,12,17,18],[4,7,10,12,13,15],[2,5,7,10,14,18],[1,4,9,11,14,17],[3,6,9,13,16,20],[2,8,11,15,16,19],[1,3,7,8,15,17],[6,12,13,14,18,19],[4,5,8,10,18,20],[2,6,11,14,15,20],[3,4,7,16,17,19],[1,5,10,12,14,16],[2,5,8,9,11,13],[1,11,15,18,19,20],[4,6,7,8,10,17],[1,4,7,9,15,16],[3,10,11,12,13,18],[1,8,9,12,17,20],[2,3,5,7,14,15],[2,4,14,16,18,19],[1,3,5,6,7,14],[1,2,3,4,6,10]],"7_4":[[1,2,3,4,5,6],[7,8,9,10,11,12],[13,14,15,16,17,18],[1,2,7,13,19,20],[3,4,8,14,19,20],[5,6,9,10,15,19],[5,11,12,16,17,20],[1,6,8,11,15,18],[2,3,9,12,16,18],[4,6,7,10,14,17],[4,5,8,10,13,18],[1,3,9,11,13,17],[2,5,7,12,14,15],[4,7,9,15,16,20],[1,10,12,14,16,19],[2,6,8,16,17,19],[3,6,12,13,18,20],[2,10,11,14,18,20],[3,5,7,17,18,19],[4,11,12,13,15,19],[1,5,8,9,13,14],[2,3,8,10,15,17],[3,6,7,11,13,16],[1,4,9,12,17,18],[2,4,6,9,11,14],[1,5,10,15,16,20],[6,7,8,9,17,20],[1,4,7,8,11,16],[3,9,14,15,19,20],[2,5,9,10,13,19],[5,6,11,16,18,19],[2,8,12,13,15,20],[1,3,6,7,10,12],[3,4,10,13,14,16],[4,7,10,15,18,19],[5,8,12,14,17,19],[4,5,11,15,17,20],[1,2,7,14,17,18],[7,8,9,13,16,18],[3,5,7,8,11,12],[1,4,6,10,19,20],[6,9,12,14,15,16],[2,11,13,16,17,19],[1,2,5,13,15,16],[2,4,5,9,12,17],[6,7,10,13,14,20],[1,3,4,6,8,18],[2,3,16,17,19,20],[1,2,4,5,7,9]],"6_4":[[1,2,3,4,5,6],[1,7,8,9,10,11],[1,12,13,14,15,16],[2,7,12,17,18,19],[3,4,8,13,17,20],[5,6,9,14,18,20],[2,10,11,15,16,20],[3,4,9,10,14,19],[5,6,8,11,13,19],[3,7,8,15,16,18],[4,5,11,12,15,17],[1,6,9,16,17,19],[6,7,10,12,13,20],[2,3,11,13,14,18],[5,7,10,14,16,17],[1,4,15,18,19,20],[2,4,8,9,12,16],[2,6,8,14,15,17],[2,5,7,9,13,15],[1,3,5,10,12,18],[3,9,11,12,19,20],[4,6,7,11,16,18],[1,7,8,14,19,20],[9,10,13,15,17,18],[2,5,13,16,19,20],[3,6,10,12,15,19],[1,4,11,13,14,17],[4,8,10,12,14,18],[1,2,3,7,17,20],[3,5,8,11,16,17],[1,2,8,10,13,19],[3,6,7,9,12,14],[1,5,8,9,15,20],[5,7,11,14,15,19],[1,2,6,11,12,18],[4,6,9,10,13,16],[8,12,16,17,18,20],[4,5,7,13,18,19],[2,4,10,11,17,20],[3,4,14,15,16,20],[2,9,14,16,18,19],[1,3,7,11,13,16],[4,6,7,8,15,17],[2,5,8,10,12,14],[3,6,10,17,18,19],[1,5,9,12,17,19],[8,9,11,13,15,18],[1,6,10,11,14,20],[4,7,9,12,16,20],[2,3,4,9,11,15],[1,5,6,15,16,18],[12,13,14,16,17,19],[2,3,6,7,8,20],[4,5,8,10,16,19],[3,5,13,15,17,20],[1,2,4,7,10,14],[1,3,8,9,13,18],[2,4,6,12,13,20],[7,9,11,17,18,20],[1,3,10,12,16,17],[5,7,8,11,12,16],[2,5,9,10,11,18],[8,9,11,13,14,17],[4,8,11,12,15,19],[6,7,10,15,19,20],[2,4,5,17,18,19],[3,5,6,13,14,16],[1,9,12,14,15,20],[2,3,7,9,17,19],[1,4,5,8,11,14],[3,4,7,10,12,13],[8,10,13,16,18,20],[1,2,6,7,13,17],[4,6,14,15,18,19],[1,2,3,8,15,17],[1,4,5,11,13,20],[3,9,12,15,16,18],[3,6,8,10,11,17],[2,11,15,16,18,19],[3,5,7,8,18,20],[6,8,9,13,19,20],[2,7,8,13,14,15],[1,9,10,11,14,15],[2,4,6,12,16,17],[6,11,13,17,18,19],[2,5,9,12,14,20],[1,2,3,4,14,18],[1,7,12,15,18,19],[3,4,5,9,10,13],[1,3,4,6,11,20]]}
+;
+  const F10 = [[1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15],[16,17,18,19,20],[1,2,6,11,16],[3,4,7,12,17],[5,8,9,13,18],[10,14,15,19,20],[1,8,9,12,19],[2,7,14,15,18]];
+  const SYS = { A: SXR['6_3'], B: SXR['8_4'], C: SXR['7_4'], D: SXR['6_4'], E: F10, F: F10.slice(0, 6),
+    OX: [[1,2,3,4,5,6]], OE: [[1,2,3,4,5,6]],
+    P5: [[1,2,3,6,8],[1,2,4,6,8],[1,3,4,5,7],[2,3,4,6,8],[2,5,6,7,8]],
+    S7: [[1,2,3,4,5,7],[1,2,3,5,6,8],[1,2,4,5,6,7],[1,2,4,5,7,8],[1,3,4,5,6,8],[1,3,5,6,7,8],[2,3,4,6,7,8]] };
+  const SYSNAME = { A: 'Α', B: 'Β', C: 'Γ', D: 'Δ', E: '5×10', F: '5×6', P5: 'Πεντάδες', S7: 'Εξάδες', OX: '5+ → 5/6', OE: '5+ → 4/6' };
+  const SYSDESC = { A: '14 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 3/6', B: '30 εξάδες · αν βγουν 8 από τα 20 → σίγουρα ≥ 4/6',
+    C: '49 εξάδες · αν βγουν 7 από τα 20 → σίγουρα ≥ 4/6', D: '90 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 4/6',
+    E: '10 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 85% των περιπτώσεων',
+    OX: 'Εξάδες ώστε, αν μια οκτάδα φέρει 5+, να υπάρχει σίγουρα 5/6 (μέγιστη απόδοση)', OE: 'Λιγότερες εξάδες: αν μια οκτάδα φέρει 5+, σίγουρα ≥ 4/6',
+    P5: '5 πεντάδες από τα 8 της στήλης · αν βγουν 5 από τα 8 → σίγουρα ≥ 4/5', S7: '7 εξάδες από τα 8 της στήλης · αν βγουν 4 από τα 8 → σίγουρα ≥ 4/6', F: '6 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 65% των περιπτώσεων' };
+  const SYSORDER = ['E', 'F', 'A', 'B', 'C', 'D', 'P5', 'S7'];
+  const sysList = () => sxSet.mode === 5 ? ['OX', 'OE'] : sxSet.mode === 6 ? ['P5', 'S7'] : ['E', 'F', 'A', 'B', 'C', 'D'];
+  const kindName = k => k === 5 ? 'πεντάδες' : 'εξάδες';
+  const LS_TRACK = 'kino.sx.tracks.v1', LS_PAY = 'kino.sx.pay.v1', LS_SXSET = 'kino.sx.set.v1';
+  let tracks = store.get(LS_TRACK, []);
+  let pay = store.get(LS_PAY, { price: 0.5, p: [0, 0, 0, 0.5, 3.5, 25, 800] });
+  let pay5 = store.get('kino.sx.pay5.v1', [0, 0, 0, 1, 10, 225]);
+  const payFor = k => k === 5 ? pay5 : pay.p;
+  const sxSet = store.get(LS_SXSET, { thr: 7, common: 6, sys: 'E', mode: 1, max: 10, stop: true });
+  const cache = new Map();           // drawId -> κλήρωση
+  let latestId = 0, sxSel = null, sxTimer = null, sxBusy = false;
+
+  $('#sxThr').value = sxSet.thr; $('#sxCommon').value = sxSet.common; if (!SYS[sxSet.sys]) sxSet.sys = 'E'; if (!sxSet.mode) sxSet.mode = 1; if (sxSet.filt === undefined) sxSet.filt = true; if (!sxSet.filtN) sxSet.filtN = 100; if (!sxSet.rmin) sxSet.rmin = 125; if (!sxSet.rmax) sxSet.rmax = 150; if (!sxSet.days) sxSet.days = 7; if (!sxSet.octN) sxSet.octN = 3;
+  $('#sxOctN').value = sxSet.octN;
+  $('#sxRuleMin').value = sxSet.rmin; $('#sxRuleMax').value = sxSet.rmax; $('#sxDays').value = sxSet.days;
+  $('#sxFilt').checked = sxSet.filt; $('#sxFiltN').value = sxSet.filtN;
+  $('#sxMax').value = Math.max(10, sxSet.max);
+  const payIds = ['pp0', 'pp3', 'pp4', 'pp5', 'pp6'];
+  const payVals = () => [pay.price, pay.p[3], pay.p[4], pay.p[5], pay.p[6]];
+  payIds.forEach((id, i) => { $('#' + id).value = payVals()[i]; $('#' + id).addEventListener('change', () => {
+    const v = payIds.map(x => +$('#' + x).value || 0);
+    pay = { price: v[0], p: [0, 0, 0, v[1], v[2], v[3], v[4]] }; store.set(LS_PAY, pay); renderTracks(); renderGen();
+  }); });
+  ['pq3', 'pq4', 'pq5'].forEach((id, i) => { $('#' + id).value = pay5[3 + i]; $('#' + id).addEventListener('change', () => {
+    pay5 = [0, 0, 0, +$('#pq3').value || 0, +$('#pq4').value || 0, +$('#pq5').value || 0];
+    store.set('kino.sx.pay5.v1', pay5); renderTracks();
+  }); });
+  function renderModeBtns(){
+    $('#sxModeBtns').querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.m === sxSet.mode));
+    $('#sxHotCard').hidden = ![2, 3].includes(sxSet.mode); $('#sxDelayCard').hidden = [2, 3, 6].includes(sxSet.mode);
+    $('#sxColCard').hidden = sxSet.mode !== 6;
+  }
+  $('#sxModeBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    sxSet.mode = +b.dataset.m; saveSx(); renderModeBtns(); renderSysBtns(); sxSel = null; $('#sxGen').hidden = true;
+    if ([2, 3].includes(sxSet.mode)) renderHot();
+    if (sxSet.mode === 6) loadLong();
+  }));
+  // 20 πιο συχνά στις τελευταίες 5 κληρώσεις· ισοβαθμία: πιο πρόσφατη εμφάνιση, μετά νωρίτερη θέση στην κλήρωση
+  function hotNumbers(){
+    const H = sortedHist().slice(-5), sc = new Map();
+    H.forEach((d, j) => d.order.forEach((x, p) => { const o = sc.get(x) || { n: 0 }; sc.set(x, { n: o.n + 1, j, p }); }));
+    const list = [...sc.entries()].sort((a, b) => b[1].n - a[1].n || b[1].j - a[1].j || a[1].p - b[1].p).slice(0, 20);
+    return { H, nums: list.map(e => e[0]), cnt: list.map(e => e[1].n) };
+  }
+  // 20 πιο κρύα: όσο περισσότερες κληρώσεις χωρίς εμφάνιση· ισοβαθμία: λιγότερες εμφανίσεις στις τελευταίες 100, μετά μικρότερος αριθμός
+  function coldNumbers(){
+    const H = sortedHist(), last = new Array(81).fill(-1), freq = new Array(81).fill(0);
+    H.forEach((d, j) => d.nums.forEach(x => { last[x] = j; if (j >= H.length - 100) freq[x]++; }));
+    const all = []; for (let x = 1; x <= 80; x++) all.push(x);
+    all.sort((a, b) => last[a] - last[b] || freq[a] - freq[b] || a - b);
+    const nums = all.slice(0, 20);
+    return { H, nums, gap: nums.map(x => H.length - 1 - last[x]), never: nums.map(x => last[x] < 0) };
+  }
+  function renderHot(){
+    if (sxSet.mode === 3) return renderCold();
+    if (sxSet.mode !== 2) return;
+    $('#sxHotTitle').textContent = 'Ζεστά νούμερα: οι 20 που βγήκαν περισσότερο στις τελευταίες 5 κληρώσεις';
+    const r = hotNumbers();
+    if (r.H.length < 5){ $('#sxHotInfo').textContent = 'Χρειάζονται τουλάχιστον 5 κληρώσεις.'; return; }
+    const a = r.H[0], b = r.H[r.H.length - 1];
+    $('#sxHotInfo').textContent = `Κληρώσεις ${a.id}–${b.id} (${fmtTime(a.time)} – ${fmtTime(b.time)}). Σειρά: συχνότερα πρώτα, σε ισοβαθμία το πιο πρόσφατο.`;
+    $('#sxHot').innerHTML = '<div class="balls">' + r.nums.map((x, i) =>
+      `<span style="display:inline-flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted)"><span class="ball">${x}</span>${r.cnt[i]}×</span>`).join('') + '</div>';
+    sxSel = { draw: { id: b.id, time: b.time, order: r.nums }, delay: null, mode: 2, from: a.id };
+    $('#sxGen').hidden = false; renderGen();
+  }
+  // Mode 4: τα 20 της κλήρωσης, πρώτα όσα βγαίνουν μαζί σε ζευγάρια στις τελευταίες 5 κληρώσεις
+  function order4(src){
+    const H = sortedHist().slice(-5), nums = src.order;
+    const L = H.map(d => { const s = new Set(d.nums); return nums.map(x => s.has(x) ? 1 : 0); });
+    const f = nums.map((_, i) => L.reduce((a, r) => a + r[i], 0));
+    const p = nums.map((_, i) => L.reduce((a, r) => a + (r[i] ? r.reduce((s, v) => s + v, 0) - 1 : 0), 0));
+    const idx = nums.map((_, i) => i).sort((a, b) => p[b] - p[a] || f[b] - f[a] || a - b);
+    return { order: idx.map(i => nums[i]), note: idx.map(i => `${nums[i]}(${p[i]}·${f[i]})`).join(' '),
+      legend: `ζευγάρια·εμφανίσεις στις κληρώσεις ${H[0].id}–${H[H.length - 1].id}` };
+  }
+  // Mode 5: τα 20 της κλήρωσης, πρώτα όσα συμμετέχουν στις περισσότερες εξάδες χωρίς 3+ (τελευταίες max(10, μέχρι την κλήρωση))
+  let SIX20 = null;
+  function order5(src){
+    if (!SIX20){ SIX20 = []; for (let a = 0; a < 20; a++) for (let b = a + 1; b < 20; b++) for (let c = b + 1; c < 20; c++)
+      for (let d = c + 1; d < 20; d++) for (let e = d + 1; e < 20; e++) for (let f = e + 1; f < 20; f++) SIX20.push([a, b, c, d, e, f]); }
+    const Hall = sortedHist(), nums = src.order, after = Hall.filter(d => d.id > src.id).length;
+    const L = Math.min(Hall.length, Math.max(10, after));
+    const rows = Hall.slice(-L).reverse().map(d => { const s = new Set(d.nums); return nums.map(x => s.has(x) ? 1 : 0); });
+    // run = πόσες συνεχόμενες πρόσφατες κληρώσεις η εξάδα δεν έχει 3+
+    const run = new Int16Array(SIX20.length); let Rmax = 0;
+    SIX20.forEach((s, k) => { let r = 0; for (const w of rows){ if (w[s[0]] + w[s[1]] + w[s[2]] + w[s[3]] + w[s[4]] + w[s[5]] >= 3) break; r++; } run[k] = r; if (r > Rmax) Rmax = r; });
+    const R = Math.max(1, Math.min(L, Rmax)), cnt = new Array(20).fill(0), wsum = new Array(20).fill(0); let nCold = 0;
+    SIX20.forEach((s, k) => { for (const i of s) wsum[i] += run[k]; if (run[k] >= R){ nCold++; for (const i of s) cnt[i]++; } });
+    const last = nums.map(x => { for (let j = Hall.length - 1; j >= 0; j--) if (Hall[j].nums.includes(x)) return j; return -1; });
+    const idx = nums.map((_, i) => i).sort((a, b) => cnt[b] - cnt[a] || wsum[b] - wsum[a] || last[a] - last[b] || a - b);
+    return { order: idx.map(i => nums[i]), note: idx.map(i => `${nums[i]}(${cnt[i]})`).join(' '),
+      legend: `${nCold} από 38.760 εξάδες χωρίς 3+ στις τελευταίες ${R} κληρώσεις${R < Math.max(10, after) ? ' (καμία δεν άντεξε ' + Math.max(10, after) + ', οπότε κρατήθηκαν οι πιο «κρύες»)' : ''}· σε παρένθεση: σε πόσες συμμετέχει το νούμερο` };
+  }
+  function renderCold(){
+    const r = coldNumbers();
+    $('#sxHotTitle').textContent = 'Κρύα νούμερα: τα 20 που λείπουν τις περισσότερες κληρώσεις';
+    if (r.H.length < 5){ $('#sxHotInfo').textContent = 'Χρειάζονται περισσότερες κληρώσεις.'; return; }
+    const b = r.H[r.H.length - 1];
+    $('#sxHotInfo').textContent = `Από ${r.H.length} κληρώσεις έως την ${b.id} (${fmtTime(b.time)}). Κάτω από κάθε νούμερο: κληρώσεις χωρίς εμφάνιση. Σειρά: πιο κρύο πρώτα.`;
+    $('#sxHot').innerHTML = '<div class="balls">' + r.nums.map((x, i) =>
+      `<span style="display:inline-flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted)"><span class="ball">${x}</span>${r.never[i] ? '>' + r.gap[i] : r.gap[i]}</span>`).join('') + '</div>';
+    sxSel = { draw: { id: b.id, time: b.time, order: r.nums }, delay: null, mode: 3 };
+    $('#sxGen').hidden = false; renderGen();
+  }
+  // ---- Mode 6: οι 10 στήλες του ταμπλό ----
+  let longLoaded = 0;
+  async function loadLong(){
+    const want = sxSet.days;
+    if (longLoaded >= want){ renderCols(); return; }
+    $('#sxColInfo').textContent = `Φόρτωση ιστορικού ${want} ημερών…`;
+    try{
+      for (let k = 2; k < want; k++){
+        const ds = await fetchByDate(athensDate(new Date(Date.now() - k * 864e5)));
+        ds.forEach(d => cache.set(d.id, d));
+        $('#sxColInfo').textContent = `Φόρτωση ιστορικού… ${k + 1}/${want} ημέρες`;
+      }
+      longLoaded = want;
+    }catch(e){ status(e.message, 'err'); }
+    renderCols();
+  }
+  const colNums = c => [0, 1, 2, 3, 4, 5, 6, 7].map(r => c + 10 * r);
+  function colInfo(){
+    const H = sortedHist(), n = H.length;
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(c => {
+      const nums = colNums(c), lastK = {};
+      for (let j = n - 1; j >= 0; j--){
+        const s = new Set(H[j].nums); let k = 0; for (const x of nums) if (s.has(x)) k++;
+        if (k >= 4 && lastK[k] == null) lastK[k] = n - 1 - j;
+      }
+      const v = k => lastK[k];
+      const no5 = Math.min(...[5, 6, 7, 8].map(k => v(k) == null ? Infinity : v(k)));
+      return { c, nums, last: lastK, no5, n };
+    });
+  }
+  function renderCols(){
+    if (sxSet.mode !== 6) return;
+    const info = colInfo(), lo = sxSet.rmin, hi = sxSet.rmax, n = info[0] ? info[0].n : 0;
+    const cell = (v) => v == null ? `<span class="muted">&gt;${n}</span>` : v;
+    const inRule = r => r.no5 >= lo && r.no5 <= hi;
+    $('#sxColInfo').innerHTML = `Ιστορικό ${n} κληρώσεων. Οι αριθμοί δείχνουν πριν από πόσες κληρώσεις η στήλη έβγαλε ακριβώς τόσα (0 = στην τελευταία). <b>Κόκκινες</b>: χωρίς 5+ για ${lo}–${hi} κληρώσεις. Πατήστε μια στήλη.`;
+    $('#sxCols').innerHTML = '<tr><th>Στήλη</th><th>8</th><th>7</th><th>6</th><th>5</th><th>4</th><th>Χωρίς 5+</th></tr>' + info.map(r =>
+      `<tr class="tap${inRule(r) ? ' hot' : ''}" data-c="${r.c}"><td><b>${r.c % 10}</b><div class="muted" style="font-size:10px">${r.c}–${r.c + 70}</div></td><td>${cell(r.last[8])}</td><td>${cell(r.last[7])}</td><td>${cell(r.last[6])}</td><td>${cell(r.last[5])}</td><td>${cell(r.last[4])}</td><td><b>${r.no5 === Infinity ? '&gt;' + n : r.no5}</b></td></tr>`).join('');
+    $('#sxCols').querySelectorAll('tr[data-c]').forEach(tr => tr.addEventListener('click', () => {
+      const r = info.find(x => x.c === +tr.dataset.c), H = sortedHist(), last = H[H.length - 1];
+      sxSel = { draw: { id: last.id, time: last.time, order: r.nums }, delay: r.no5, mode: 6, col: r.c };
+      $('#sxGen').hidden = false; renderGen(); $('#sxGen').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
+  ['sxRuleMin', 'sxRuleMax'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderCols(); }));
+  $('#sxDays').addEventListener('change', () => { saveSx(); loadLong(); });
+  function renderSysBtns(){
+    if (!sysList().includes(sxSet.sys)) sxSet.sys = sysList()[0];
+    $('#sxSysBtns').innerHTML = sysList().map(s => `<button type="button" data-s="${s}" class="${s === sxSet.sys ? 'on' : ''}">${SYSNAME[s]}<small>${s[0] === 'O' ? (s === 'OX' ? 'μέγιστη απόδοση' : 'οικονομικό') : SYS[s].length + ' ' + kindName(SYS[s][0].length)}</small></button>`).join('');
+    $('#sxSysDesc').textContent = SYSDESC[sxSet.sys];
+    $('#sxSysBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { sxSet.sys = b.dataset.s; saveSx(); renderSysBtns(); renderGen(); }));
+  }
+  function saveSx(){
+    Object.assign(sxSet, { thr: +$('#sxThr').value || 7, common: +$('#sxCommon').value || 6, sys: sxSet.sys, mode: sxSet.mode, filt: $('#sxFilt').checked, filtN: Math.min(300, Math.max(5, +$('#sxFiltN').value || 100)),
+      rmin: +$('#sxRuleMin').value || 125, rmax: +$('#sxRuleMax').value || 150, days: Math.min(30, Math.max(2, +$('#sxDays').value || 7)), octN: Math.min(10, Math.max(1, +$('#sxOctN').value || 3)),
+      max: Math.max(10, +$('#sxMax').value || 10) });
+    store.set(LS_SXSET, sxSet);
+  }
+  ['sxThr', 'sxCommon'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderDelays(); renderTracks(); }));
+  ['sxMax', 'sxFilt', 'sxFiltN', 'sxOctN'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
+
+  const common = (a, b) => { const s = new Set(b); let c = 0; for (const x of a) if (s.has(x)) c++; return c; };
+  const eur = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2).replace('.', ',') + '€';
+  const makeSixes = (order, sys) => SYS[sys].map(p => p.map(k => order[k - 1]));
+  const sortedHist = () => [...cache.values()].sort((a, b) => a.id - b.id);
+
+  async function sxLoad(){
+    if (sxBusy) return; sxBusy = true;
+    $('#sxRefresh').disabled = true; $('#sxUpd').textContent = 'Φόρτωση κληρώσεων…';
+    try{
+      let draws = await fetchByDate(athensDate());
+      if (draws.length < 120) draws = draws.concat(await fetchByDate(athensDate(new Date(Date.now() - 864e5))));
+      if (!draws.length){ const d = await fetchLast(); if (d) draws = [d]; }
+      draws.forEach(d => cache.set(d.id, d));
+      latestId = Math.max(latestId, ...draws.map(d => d.id));
+      // κληρώσεις που λείπουν για τις παρακολουθήσεις (π.χ. από παλαιότερες μέρες)
+      for (const t of tracks){
+        for (let id = t.startAfter + 1; id <= Math.min(latestId, t.startAfter + Math.max(10, t.max)); id++){
+          if (!cache.has(id)){ try{ const d = await fetchById(id); if (d) cache.set(d.id, d); }catch(e){} }
+        }
+      }
+      $('#sxUpd').textContent = 'Τελευταία κλήρωση: ' + latestId + ' · ' + fmtTime(cache.get(latestId).time) +
+        ' · ενημέρωση ' + new Date().toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
+      renderDelays(); renderTracks(); renderGen(); renderHot(); renderCols();
+      if (sxSet.mode === 6 && longLoaded < sxSet.days) loadLong();
+    }catch(e){ $('#sxUpd').textContent = ''; status(e.message, 'err'); }
+    finally{ sxBusy = false; $('#sxRefresh').disabled = false; }
+  }
+  $('#sxRefresh').addEventListener('click', sxLoad);
+
+  function delays(){
+    const H = sortedHist().slice(-150), need = sxSet.common, out = [];
+    for (let i = 0; i < H.length; i++){
+      let d = 0;
+      for (let j = i + 1; j < H.length; j++) d = common(H[i].nums, H[j].nums) >= need ? 0 : d + 1;
+      out.push({ draw: H[i], delay: d, after: H.length - 1 - i });
+    }
+    return out;
+  }
+  function renderDelays(){
+    const all = delays(), thr = sxSet.thr;
+    const rows = all.filter(r => r.after <= 100).sort((a, b) => b.delay - a.delay || b.draw.id - a.draw.id).slice(0, 15);
+    const hot = all.filter(r => r.after <= 100 && r.delay >= thr).length;
+    const sorted = all.length && all.every(r => r.draw.order.every((x, i, a) => !i || a[i - 1] < x));
+    $('#sxInfo').innerHTML = `Από τις τελευταίες ${Math.min(101, all.length)} κληρώσεις, <b>${hot}</b> έχουν καθυστέρηση ≥ ${thr} (χωρίς ${sxSet.common}+ κοινά). Πατήστε μία για τις στήλες της.` +
+      (sorted ? '<br><span style="color:var(--danger)">Προσοχή: το API δίνει τα νούμερα ταξινομημένα, όχι με σειρά εμφάνισης. Οι θέσεις 1–20 είναι η αύξουσα σειρά. Οι εγγυήσεις ισχύουν κανονικά.</span>' : '');
+    $('#sxDelays').innerHTML = '<tr><th>Κλήρωση</th><th>Ώρα</th><th>Καθυστ.</th><th>Μετά</th></tr>' + rows.map(r =>
+      `<tr class="tap${r.delay >= thr ? ' hot' : ''}" data-id="${r.draw.id}"><td>${r.draw.id}</td><td>${fmtTime(r.draw.time)}</td><td><b>${r.delay}</b></td><td>${r.after}</td></tr>`).join('');
+    $('#sxDelays').querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => {
+      const r = all.find(x => x.draw.id === +tr.dataset.id); sxSel = { draw: r.draw, src: r.draw, delay: r.delay, mode: sxSet.mode };
+      $('#sxGen').hidden = false; renderGen(); $('#sxGen').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
+  function sixesHtml(sixes, hitSet, st){
+    return sixes.map((s, i) => {
+      const h = hitSet ? s.filter(x => hitSet.has(x)).length : null, K = s.length;
+      const bad = st && (st[i][0] > 1 || st[i][1] > 1);
+      return `<div class="sixrow"><span class="muted" style="width:22px">${i + 1}</span>${ballsHtml(s, hitSet)}` +
+        (h != null ? `<span class="badge${h >= 3 ? ' good' : ''}">${h}/${K}</span>` : '') +
+        (st ? `<span style="font-size:10px;line-height:1.2;text-align:right;color:${bad ? 'var(--danger)' : 'var(--muted)'}">${K}/${K}×${st[i][0]}<br>${K - 1}/${K}×${st[i][1]}</span>` : '') + '</div>';
+    }).join('');
+  }
+  // Φίλτρο ιστορικού: αναδιάταξη θέσεων (ανταλλαγές) ώστε κάθε στήλη να έχει ≤1 πλήρη επιτυχία και ≤1 «παρά ένα» στις τελευταίες N κληρώσεις.
+  // Οι εγγυήσεις του συστήματος μένουν ίδιες, γιατί το σχέδιο θέσεων δεν αλλάζει.
+  function colStats(T, M){
+    return T.map(p => { let f = 0, m = 0; for (const r of M){ let h = 0; for (const k of p) h += r[k - 1]; if (h === p.length) f++; else if (h === p.length - 1) m++; } return [f, m]; });
+  }
+  const violOf = st => st.reduce((a, [f, m]) => a + Math.max(0, f - 1) + Math.max(0, m - 1), 0);
+  function fixOrder(base, sys){
+    const T = SYS[sys], H = sortedHist().slice(-sxSet.filtN), ord = base.slice();
+    const M = H.map(d => { const s = new Set(d.nums); return ord.map(x => s.has(x) ? 1 : 0); });
+    const swap = (i, j) => { [ord[i], ord[j]] = [ord[j], ord[i]]; for (const r of M) [r[i], r[j]] = [r[j], r[i]]; };
+    let st = colStats(T, M), v = violOf(st), it = 0;
+    while (v > 0 && it++ < 60){
+      const badPos = new Set(); T.forEach((p, c) => { if (st[c][0] > 1 || st[c][1] > 1) p.forEach(k => badPos.add(k - 1)); });
+      let done = false;
+      for (const i of badPos){
+        for (let j = ord.length - 1; j >= 0 && !done; j--){
+          if (j === i) continue;
+          swap(i, j); const s2 = colStats(T, M), v2 = violOf(s2);
+          if (v2 < v){ st = s2; v = v2; done = true; } else swap(i, j);
+        }
+        if (done) break;
+      }
+      if (!done) break;
+    }
+    const moved = ord.filter((x, i) => x !== base[i]).length;
+    return { order: ord, st, bad: st.filter(([f, m]) => f > 1 || m > 1).length, moved, n: H.length };
+  }
+  // ---- Mode 5: κρύες οκτάδες της κλήρωσης ----
+  let OCTM = null, PC = null;
+  function oct5(src, nOct, lvl){
+    if (!OCTM){
+      PC = new Uint8Array(1 << 20); for (let i = 1; i < (1 << 20); i++) PC[i] = PC[i >> 1] + (i & 1);
+      OCTM = new Int32Array(125970); let n = 0;
+      const rec = (st, k, m) => { if (k === 8){ OCTM[n++] = m; return; } for (let i = st; i <= 20 - (8 - k); i++) rec(i + 1, k + 1, m | (1 << i)); };
+      rec(0, 0, 0);
+    }
+    const nums = src.order, W = sortedHist().slice(-100).reverse();
+    const masks = W.map(d => { const s = new Set(d.nums); let m = 0; nums.forEach((x, i) => { if (s.has(x)) m |= 1 << i; }); return m; });
+    const run = new Int16Array(OCTM.length); let R = 0;
+    for (let k = 0; k < OCTM.length; k++){ const o = OCTM[k]; let r = 0; for (const m of masks){ if (PC[o & m] >= 4) break; r++; } run[k] = r; if (r > R) R = r; }
+    let nAtMax = 0; for (let k = 0; k < run.length; k++) if (run[k] === R) nAtMax++;
+    const idx = Array.from(run.keys()).sort((a, b) => run[b] - run[a] || a - b).slice(0, nOct);
+    const posOf = m => { const p = []; for (let i = 0; i < 20; i++) if (m >> i & 1) p.push(i); return p; };
+    const subs = (p, k) => { const out = []; const rec = (st, c, m) => { if (c === k){ out.push(m); return; } for (let i = st; i < p.length; i++) rec(i + 1, c + 1, m | (1 << p[i])); }; rec(0, 0, 0); return out; };
+    const octs = idx.map(k => ({ mask: OCTM[k], run: run[k], nums: posOf(OCTM[k]).map(i => nums[i]) }));
+    const targets = [...new Set(octs.flatMap(o => subs(posOf(o.mask), 5)))];
+    const cands = [...new Set(octs.flatMap(o => subs(posOf(o.mask), 6)))];
+    const ok = lvl === 'OE' ? (c, t) => PC[c & t] >= 4 : (c, t) => (c & t) === t;
+    let unc = targets.slice(); const chosen = [];
+    while (unc.length){
+      let best = cands[0], bn = -1;
+      for (const c of cands){ let n = 0; for (const t of unc) if (ok(c, t)) n++; if (n > bn){ bn = n; best = c; } }
+      chosen.push(best); unc = unc.filter(t => !ok(best, t));
+    }
+    const cols = chosen.map(c => posOf(c).map(i => nums[i]));
+    return { octs, R, nAtMax, cols, W: W.length };
+  }
+  function renderGen5(){
+    if (!sxSel.own){ sxSel.draw = { ...sxSel.draw, order: sxSel.draw.order.slice() }; sxSel.own = true; }
+    const o = oct5(sxSel.src, sxSet.octN, sxSet.sys); sxSel.cols = o.cols;
+    $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${sxSel.src.id} (κρύες οκτάδες)`;
+    $('#sxSrc').innerHTML = `Mode 5 · ${fmtTime(sxSel.src.time)} · καθυστέρηση ${sxSel.delay}<br>` +
+      (o.R < o.W ? `Καμία οκτάδα δεν έμεινε χωρίς 4+ και στις ${o.W} κληρώσεις· κρατήθηκαν οι πιο «κρύες». ` : '') +
+      `Μέγιστο διάστημα χωρίς 4+: <b>${o.R}</b> κληρώσεις (${o.nAtMax} οκτάδ${o.nAtMax === 1 ? 'α' : 'ες'}).<br>` +
+      o.octs.map((x, i) => `Οκτάδα ${i + 1}: <b>${x.nums.join(' ')}</b> · ${x.run} κληρώσεις χωρίς 4+`).join('<br>');
+    $('#sxFiltInfo').textContent = 'Στο Mode 5 οι εξάδες βγαίνουν από τις οκτάδες· το φίλτρο ιστορικού δεν εφαρμόζεται.';
+    $('#sxCost').textContent = `${o.cols.length} εξάδες · ${eur(o.cols.length * pay.price)} ανά κλήρωση · έως ${eur(o.cols.length * pay.price * sxSet.max)} για ${sxSet.max} κληρώσεις`;
+    $('#sxList').innerHTML = sixesHtml(o.cols);
+  }
+  function renderGen(){
+    if (!sxSel) return;
+    $('#sxOctWrap').hidden = sxSel.mode !== 5;
+    if (sxSel.mode === 5){ renderGen5(); return; }
+    if (!sxSel.own){ sxSel.base = sxSel.draw.order.slice(); sxSel.draw = { ...sxSel.draw, order: sxSel.base.slice() }; sxSel.own = true; }
+    if (sxSel.mode === 4){ sxSel.o = order4(sxSel.src); sxSel.base = sxSel.o.order; }
+    let F = null;
+    if (sxSet.filt){ F = fixOrder(sxSel.base, sxSet.sys); sxSel.draw.order = F.order; } else sxSel.draw.order = sxSel.base.slice();
+    const d = sxSel.draw, sx = makeSixes(d.order, sxSet.sys), K0 = sx[0].length;
+    $('#sxFiltInfo').innerHTML = !F ? 'Φίλτρο ανενεργό.' :
+      (F.bad ? `<span style="color:var(--danger)">${F.bad} στήλες δεν διορθώθηκαν (κόκκινες).</span> ` : `Όλες οι στήλες έχουν ≤1 ${K0}/${K0} και ≤1 ${K0 - 1}/${K0} στις τελευταίες ${F.n} κληρώσεις. `) +
+      (F.moved ? `Άλλαξαν θέση ${F.moved} νούμερα· νέα σειρά: ${F.order.join(' ')}` : 'Δεν χρειάστηκε αλλαγή σειράς.');
+    const kn = kindName(sx[0].length);
+    if (sxSel.mode === 4 || sxSel.mode === 5){
+      const o = sxSel.o;
+      $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${sxSel.src.id} (${sxSel.mode === 4 ? 'ζεστά ζευγάρια' : 'κρύες εξάδες'})`;
+      $('#sxSrc').innerHTML = `Mode ${sxSel.mode} · ${fmtTime(sxSel.src.time)} · καθυστέρηση ${sxSel.delay}<br>Θέσεις 1–20: ${o.note}<br><span style="font-size:12px">${o.legend}</span>`;
+    } else if (sxSel.mode === 6){
+      $('#sxGenTitle').textContent = `Στήλη ${sxSel.col % 10} του ταμπλό (${sxSel.base.join(' ')})`;
+      $('#sxSrc').innerHTML = `Mode 6 · χωρίς 5+ για ${sxSel.delay === Infinity ? 'πάνω από το ιστορικό' : sxSel.delay} κληρώσεις · τελευταία κλήρωση ${d.id}`;
+    } else if (sxSel.mode === 3){
+      $('#sxGenTitle').textContent = `Στήλες από τα κρύα νούμερα (έως κλήρωση ${d.id})`;
+      $('#sxSrc').innerHTML = `Mode 3 · θέσεις 1–20: ${sxSel.base.join(' ')}`;
+    } else if (sxSel.mode === 2){
+      $('#sxGenTitle').textContent = `Στήλες από τα ζεστά νούμερα (έως κλήρωση ${d.id})`;
+      $('#sxSrc').innerHTML = `Mode 2 · θέσεις 1–20: ${sxSel.base.join(' ')}`;
+    } else {
+      $('#sxGenTitle').textContent = `Στήλες της κλήρωσης ${d.id}`;
+      $('#sxSrc').innerHTML = `Mode 1 · ${fmtTime(d.time)} · καθυστέρηση ${sxSel.delay}<br>Σειρά εμφάνισης: ${sxSel.base.join(' ')}`;
+    }
+    $('#sxCost').textContent = `${sx.length} ${kn} · ${eur(sx.length * pay.price)} ανά κλήρωση · έως ${eur(sx.length * pay.price * sxSet.max)} για ${sxSet.max} κληρώσεις`;
+    $('#sxList').innerHTML = sixesHtml(sx, null, F ? F.st : null);
+  }
+  $('#sxCopy').addEventListener('click', async () => {
+    if (!sxSel) return;
+    const txt = (sxSel.mode === 5 && sxSel.cols ? sxSel.cols : makeSixes(sxSel.draw.order, sxSet.sys)).map(s => s.join(' ')).join('\n');
+    try{ await navigator.clipboard.writeText(txt); $('#sxCopy').textContent = 'Αντιγράφηκε ✓'; }catch{ $('#sxCopy').textContent = 'Δεν επιτρέπεται'; }
+    setTimeout(() => $('#sxCopy').textContent = 'Αντιγραφή', 2000);
+  });
+  $('#sxTrack').addEventListener('click', () => {
+    if (!sxSel) return;
+    const d = sxSel.draw;
+    tracks.unshift({ id: uid(), src: d.id, srcTime: d.time, order: d.order, sys: sxSet.sys, mode: sxSel.mode || 1, startAfter: latestId,
+      max: Math.max(10, sxSet.max), common: sxSel.mode === 6 ? 5 : sxSet.common, created: Date.now(), cols: sxSel.mode === 5 ? sxSel.cols : undefined });
+    store.set(LS_TRACK, tracks); renderTracks();
+    status(`${sxSel.mode === 6 ? 'Η στήλη ' + (sxSel.col % 10) + ' μπήκε' : sxSel.mode >= 4 ? 'Η κλήρωση ' + d.id + ' (Mode ' + sxSel.mode + ') μπήκε' : sxSel.mode === 3 ? 'Τα κρύα νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : sxSel.mode === 2 ? 'Τα ζεστά νούμερα έως την κλήρωση ' + d.id + ' μπήκαν' : 'Η κλήρωση ' + d.id + ' μπήκε'} σε παρακολούθηση (σύστημα ${SYSNAME[sxSet.sys]}) από την κλήρωση ${latestId + 1}.`, 'ok');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  function evalTrack(t){
+    const sx = t.cols || makeSixes(t.order, t.sys), PT = payFor(sx[0].length), cost1 = sx.length * pay.price, rows = [];
+    const max = Math.max(10, t.max);
+    let state = 'Σε αναμονή της κλήρωσης ' + (t.startAfter + 1);
+    for (let id = t.startAfter + 1; id <= t.startAfter + max; id++){
+      const d = cache.get(id); if (!d) break;
+      const S = new Set(d.nums), hits = sx.map(s => s.filter(x => S.has(x)).length);
+      const win = hits.reduce((a, h) => a + (PT[h] || 0), 0), c = common(t.order, d.nums);
+      rows.push({ d, hits, win, c, best: Math.max(...hits) });
+    }
+    const brk = rows.filter(r => r.c >= t.common).length;
+    if (rows.length) state = (rows.length >= max ? 'Ολοκληρώθηκε' : `Ενεργή · ${rows.length}/${max}`) +
+      (brk ? ` · σπάσιμο (${t.common}+ κοινά) σε ${brk} ${brk > 1 ? 'κληρώσεις' : 'κλήρωση'}` : '');
+    const won = rows.reduce((a, r) => a + r.win, 0), cost = rows.length * cost1;
+    return { sx, rows, won, cost, state, max, done: rows.length >= max };
+  }
+  function renderTracks(){
+    const el = $('#sxTracks');
+    renderPerf();
+    if (!tracks.length){ el.innerHTML = '<div class="card empty">Καμία παρακολούθηση. Διαλέξτε παρακάτω μια κλήρωση που καθυστερεί.</div>'; return; }
+    el.innerHTML = tracks.map(t => {
+      const e = evalTrack(t), net = e.won - e.cost, last = e.rows[e.rows.length - 1];
+      const K = e.sx[0].length;
+      const dist = [3, 4, 5, 6].map(k => e.rows.reduce((a, r) => a + r.hits.filter(h => h === k).length, 0));
+      return `<div class="card">
+        <div class="row"><strong style="flex:1">${t.mode === 6 ? 'M6 · Στήλη ' + (t.order[0] % 10) + ' (' + t.order[0] + '–' + t.order[7] + ')' : t.mode === 4 ? 'M4 · Κλήρωση ' + t.src + ' (ζευγάρια)' : t.mode === 5 ? 'M5 · Κλήρωση ' + t.src + (t.cols ? ' (κρύες οκτάδες)' : ' (κρύες εξάδες)') : t.mode === 3 ? 'M3 · Κρύα έως ' + t.src : t.mode === 2 ? 'M2 · Ζεστά έως ' + t.src : 'M1 · Κλήρωση ' + t.src} · ${SYSNAME[t.sys]} (${e.sx.length})</strong>
+          <span class="badge${e.done ? '' : ' good'}">${e.done ? 'Τέλος' : 'Ενεργή'}</span></div>
+        <div class="muted">${e.state}</div>
+        <div class="stats">
+          <div>Κληρώσεις<b>${e.rows.length}/${e.max}</b></div>
+          <div>Κόστος<b>${eur(e.cost)}</b></div>
+          <div>Κέρδη<b>${eur(e.won)}</b></div>
+          <div>Καθαρό<b class="${net >= 0 ? 'pos' : 'neg'}">${eur(net)}</b></div>
+          <div>3/${K} · 4/${K}<b>${dist[0]} · ${dist[1]}</b></div>
+          <div>${K === 5 ? '5/5' : '5/6 · 6/6'}<b>${K === 5 ? dist[2] : dist[2] + ' · ' + dist[3]}</b></div>
+        </div>
+        ${e.rows.length ? '<table class="t" style="margin-top:10px"><tr><th>Κλήρωση</th><th>Κοινά/' + t.order.length + '</th><th>Καλύτερη</th><th>Κέρδος</th></tr>' +
+          e.rows.map(r => `<tr${r.c >= t.common ? ' class="hot"' : ''}><td>${r.d.id}<div class="muted" style="font-size:11px">${fmtTime(r.d.time)}</div></td><td>${r.c}</td><td>${r.best}/${K}</td><td>${eur(r.win)}</td></tr>`).join('') + '</table>' : ''}
+        <details><summary>Οι ${kindName(K)}${last ? ' (επιτυχίες στην κλήρωση ' + last.d.id + ')' : ''}</summary>${sixesHtml(e.sx, last ? new Set(last.d.nums) : null)}</details>
+        <div class="row" style="margin-top:10px"><div style="flex:1"></div><button class="btn small danger" data-del="${t.id}">Διαγραφή</button></div>
+      </div>`;
+    }).join('');
+    el.querySelectorAll('[data-del]').forEach(b => {
+      let armed = false;
+      b.addEventListener('click', () => {
+        if (!armed){ armed = true; b.textContent = 'Σίγουρα;'; setTimeout(() => { armed = false; b.textContent = 'Διαγραφή'; }, 3000); return; }
+        tracks = tracks.filter(x => x.id !== b.dataset.del); store.set(LS_TRACK, tracks); renderTracks();
+      });
+    });
+  }
+  function renderPerf(){
+    const agg = {};
+    tracks.forEach(t => { const e = evalTrack(t); if (!e.rows.length) return;
+      const key = t.sys + '|' + (t.mode || 1); const a = agg[key] || (agg[key] = { n: 0, draws: 0, cost: 0, won: 0, top: 0, any: 0 });
+      const K = e.sx[0].length, topH = K === 5 ? 4 : 5;
+      a.n++; a.draws += e.rows.length; a.cost += e.cost; a.won += e.won;
+      a.top += e.rows.filter(r => r.best >= topH).length; a.any += e.rows.filter(r => r.win > 0).length; });
+    const keys = [1, 2, 3, 4, 5, 6].flatMap(m => SYSORDER.map(s => s + '|' + m)).filter(k => agg[k]);
+    if (!keys.length){ $('#sxPerf').innerHTML = ''; return; }
+    const tot = keys.reduce((a, s) => ({ cost: a.cost + agg[s].cost, won: a.won + agg[s].won }), { cost: 0, won: 0 });
+    $('#sxPerf').innerHTML = `<div class="card"><strong>Συνολική απόδοση</strong>
+      <div style="overflow-x:auto"><table class="t" style="margin-top:6px;font-size:12px"><tr><th>Σύστ.</th><th>Παρ.</th><th>Κλ.</th><th>Κόστος</th><th>Κέρδη</th><th>Απόδ.</th><th>Κορυφ.</th></tr>` +
+      keys.map(s => { const a = agg[s], r = a.won / a.cost - 1;
+        return `<tr><td><b>${SYSNAME[s.split('|')[0]]}</b> <span class="muted">M${s.split('|')[1]}</span></td><td>${a.n}</td><td>${a.draws}</td><td>${eur(a.cost)}</td><td>${eur(a.won)}</td><td class="${r >= 0 ? 'pos' : 'neg'}">${(r * 100).toFixed(1).replace('.', ',')}%</td><td>${a.top}</td></tr>`; }).join('') +
+      `</table></div><div class="muted" style="margin-top:6px">Κορυφ. = κληρώσεις με 4/5 ή 5+/6. Σύνολο: κόστος ${eur(tot.cost)} · κέρδη ${eur(tot.won)} · καθαρό <b class="${tot.won >= tot.cost ? 'pos' : 'neg'}">${eur(tot.won - tot.cost)}</b>. Θεωρητική απόδοση όλων ≈ −30%.</div></div>`;
+  }
+  // αυτόματος έλεγχος: κάθε 60" όσο η καρτέλα είναι ανοιχτή και η εφαρμογή στο προσκήνιο
+  function sxTick(){
+    if (document.hidden || $('#tab-sixes').hidden) return;
+    const last = cache.get(latestId);
+    if (!last || Date.now() - last.time > 5 * 60e3 + 20e3) sxLoad();
+  }
+  sxTimer = setInterval(sxTick, 60e3);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('#tab-sixes').hidden) sxLoad(); });
+  renderSysBtns(); renderModeBtns(); renderTracks();
+
+  buildGrid(); renderTickets();
+})();
+</script>
+</body>
+</html>
