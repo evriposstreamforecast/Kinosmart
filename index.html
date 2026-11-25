@@ -102,7 +102,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v11</span></h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v12</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -586,17 +586,17 @@
 ;
   const F10 = [[1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15],[16,17,18,19,20],[1,2,6,11,16],[3,4,7,12,17],[5,8,9,13,18],[10,14,15,19,20],[1,8,9,12,19],[2,7,14,15,18]];
   const SYS = { A: SXR['6_3'], B: SXR['8_4'], C: SXR['7_4'], D: SXR['6_4'], E: F10, F: F10.slice(0, 6),
-    OX: [[1,2,3,4,5,6]], OE: [[1,2,3,4,5,6]],
+    OX: [[1,2,3,4,5,6]], OE: [[1,2,3,4,5,6]], O3: [[1,2,3,4,5,6],[1,2,3,4,7,8],[1,2,5,6,7,8]],
     P5: [[1,2,3,6,8],[1,2,4,6,8],[1,3,4,5,7],[2,3,4,6,8],[2,5,6,7,8]],
     S7: [[1,2,3,4,5,7],[1,2,3,5,6,8],[1,2,4,5,6,7],[1,2,4,5,7,8],[1,3,4,5,6,8],[1,3,5,6,7,8],[2,3,4,6,7,8]] };
-  const SYSNAME = { A: 'Α', B: 'Β', C: 'Γ', D: 'Δ', E: '5×10', F: '5×6', P5: 'Πεντάδες', S7: 'Εξάδες', OX: '5+ → 5/6', OE: '5+ → 4/6' };
+  const SYSNAME = { A: 'Α', B: 'Β', C: 'Γ', D: 'Δ', E: '5×10', F: '5×6', P5: 'Πεντάδες', S7: 'Εξάδες', OX: '5+ → 5/6', OE: '5+ → 4/6', O3: '3 ανά οκτάδα' };
   const SYSDESC = { A: '14 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 3/6', B: '30 εξάδες · αν βγουν 8 από τα 20 → σίγουρα ≥ 4/6',
     C: '49 εξάδες · αν βγουν 7 από τα 20 → σίγουρα ≥ 4/6', D: '90 εξάδες · αν βγουν 6 από τα 20 → σίγουρα ≥ 4/6',
     E: '10 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 85% των περιπτώσεων',
-    OX: 'Αν κάποια από τις οκτάδες φέρει 5+, σίγουρα 5/6 (μέγιστη απόδοση)', OE: 'Οι λιγότερες εξάδες ώστε, αν κάποια από τις οκτάδες φέρει 5+, να υπάρχει σίγουρα ≥ 4/6',
+    OX: 'Αν κάποια από τις οκτάδες φέρει 5+, σίγουρα 5/6 (μέγιστη απόδοση)', O3: '3 εξάδες ανά οκτάδα (θέσεις 1-2-3-4-5-6, 1-2-3-4-7-8, 1-2-5-6-7-8): αν η οκτάδα φέρει 5/8 σίγουρο 4/6 και 32% για 5/6· με 6/8 96% για 5/6', OE: 'Οι λιγότερες εξάδες ώστε, αν κάποια από τις οκτάδες φέρει 5+, να υπάρχει σίγουρα ≥ 4/6',
     P5: '5 πεντάδες από τα 8 της στήλης · αν βγουν 5 από τα 8 → σίγουρα ≥ 4/5', S7: '7 εξάδες από τα 8 της στήλης · αν βγουν 4 από τα 8 → σίγουρα ≥ 4/6', F: '6 πεντάδες · αν βγουν 6 από τα 20 → 3/5 στο 65% των περιπτώσεων' };
   const SYSORDER = ['E', 'F', 'A', 'B', 'C', 'D', 'P5', 'S7'];
-  const sysList = () => sxSet.mode === 5 ? ['OE', 'OX'] : sxSet.mode === 6 ? ['P5', 'S7'] : ['E', 'F', 'A', 'B', 'C', 'D'];
+  const sysList = () => sxSet.mode === 5 ? ['O3', 'OE'] : sxSet.mode === 6 ? ['P5', 'S7'] : ['E', 'F', 'A', 'B', 'C', 'D'];
   const kindName = k => k === 5 ? 'πεντάδες' : 'εξάδες';
   const LS_TRACK = 'kino.sx.tracks.v1', LS_PAY = 'kino.sx.pay.v1', LS_SXSET = 'kino.sx.set.v1';
   let tracks = store.get(LS_TRACK, []);
@@ -748,7 +748,7 @@
   $('#sxDays').addEventListener('change', () => { saveSx(); loadLong(); });
   function renderSysBtns(){
     if (!sysList().includes(sxSet.sys)) sxSet.sys = sysList()[0];
-    $('#sxSysBtns').innerHTML = sysList().map(s => `<button type="button" data-s="${s}" class="${s === sxSet.sys ? 'on' : ''}">${SYSNAME[s]}<small>${s[0] === 'O' ? (s === 'OX' ? 'μέγιστη απόδοση' : 'οικονομικό') : SYS[s].length + ' ' + kindName(SYS[s][0].length)}</small></button>`).join('');
+    $('#sxSysBtns').innerHTML = sysList().map(s => `<button type="button" data-s="${s}" class="${s === sxSet.sys ? 'on' : ''}">${SYSNAME[s]}<small>${s[0] === 'O' ? (s === 'O3' ? 'σύνολο ' + 3 * sxSet.octN + ' εξάδες' : s === 'OX' ? 'μέγιστη απόδοση' : 'ελάχιστες εξάδες') : SYS[s].length + ' ' + kindName(SYS[s][0].length)}</small></button>`).join('');
     $('#sxSysDesc').textContent = SYSDESC[sxSet.sys];
     $('#sxSysBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { sxSet.sys = b.dataset.s; saveSx(); renderSysBtns(); renderGen(); }));
   }
@@ -759,6 +759,7 @@
     store.set(LS_SXSET, sxSet);
   }
   ['sxThr', 'sxCommon'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderDelays(); renderTracks(); }));
+  $('#sxOctN').addEventListener('change', () => renderSysBtns());
   ['sxMax', 'sxFilt', 'sxFiltN', 'sxOctN', 'sxNeed5'].forEach(id => $('#' + id).addEventListener('change', () => { saveSx(); renderGen(); }));
 
   const common = (a, b) => { const s = new Set(b); let c = 0; for (const x of a) if (s.has(x)) c++; return c; };
@@ -936,7 +937,11 @@
     const octs = pick.map(m => ({ mask: m, nums: posOf(m).map(i => nums[i]) }));
     const targets = [...new Set(pick.flatMap(m => subs(posOf(m), 5)))];
     const ok = lvl === 'OE' ? (c, t) => PC[c & t] >= 4 : (c, t) => (c & t) === t;
-    const colsM = coverMin(targets, ok, lvl === 'OE' ? 4 : 2), cols = colsM.map(c => posOf(c).map(i => nums[i]));
+    let colsM = null, cols;
+    if (lvl === 'O3'){
+      const seen = new Set(); cols = [];
+      for (const o of octs) for (const p of SYS.O3){ const c = p.map(k => o.nums[k - 1]), key = c.slice().sort((a, b) => a - b).join(','); if (!seen.has(key)){ seen.add(key); cols.push(c); } }
+    } else { colsM = coverMin(targets, ok, lvl === 'OE' ? 4 : 2); cols = colsM.map(c => posOf(c).map(i => nums[i])); }
     return { octs, nCold, nPool: n, fallback, R, after: after.length, cols, colsM, targets: targets.length, T: targets, ok, toNums: c => posOf(c).map(i => nums[i]), posOf };
   }
   function renderGen5(){
@@ -953,6 +958,9 @@
       o.octs.map((x, i) => `${i + 1}. <b>${x.nums.join(' ')}</b>`).join('<br>');
     $('#sxFiltInfo').textContent = `${o.targets} πεντάδες-στόχοι. Το φίλτρο ιστορικού δεν εφαρμόζεται στο Mode 5.`;
     $('#sxCost').textContent = `${o.cols.length} εξάδες · ${eur(o.cols.length * pay.price)} ανά κλήρωση · έως ${eur(o.cols.length * pay.price * sxSet.max)} για ${sxSet.max} κληρώσεις`;
+    const dup = sxSet.sys === 'O3' && o.cols.length < 3 * o.octs.length ? ` (${3 * o.octs.length - o.cols.length} ίδιες εξάδες σε διαφορετικές οκτάδες μετρήθηκαν μία φορά)` : '';
+    if (dup) $('#sxCost').textContent += dup;
+    if (sxSet.sys === 'O3'){ $('#sxList').innerHTML = sixesHtml(o.cols); return; }
     $('#sxList').innerHTML = sixesHtml(o.cols) +
       `<div class="row" style="margin-top:8px"><button class="btn small secondary" id="sxMore">Ψάξε για λιγότερες εξάδες</button><span class="muted" id="sxMoreInfo" style="flex:1"></span></div>`;
     $('#sxMore').addEventListener('click', () => {
