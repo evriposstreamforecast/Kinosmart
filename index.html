@@ -102,7 +102,7 @@
 </head>
 <body>
 <header>
-  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v12</span></h1>
+  <h1>ΚΙΝΟ Έλεγχος <span style="font-size:11px;opacity:.7">v13</span></h1>
   <button id="btnSettings" aria-label="Ρυθμίσεις">⚙︎</button>
 </header>
 
@@ -794,9 +794,12 @@
   function delays(){
     const H = sortedHist().slice(-150), need = sxSet.common, out = [];
     for (let i = 0; i < H.length; i++){
-      let d = 0;
-      for (let j = i + 1; j < H.length; j++) d = common(H[i].nums, H[j].nums) >= need ? 0 : d + 1;
-      out.push({ draw: H[i], delay: d, after: H.length - 1 - i });
+      let d = 0, f5 = 0, n5 = 0;
+      for (let j = i + 1; j < H.length; j++){
+        const c = common(H[i].nums, H[j].nums); d = c >= need ? 0 : d + 1;
+        if (j >= H.length - 100){ n5++; if (c >= 5) f5++; }
+      }
+      out.push({ draw: H[i], delay: d, after: H.length - 1 - i, f5, n5 });
     }
     return out;
   }
@@ -805,10 +808,10 @@
     const rows = all.filter(r => r.after <= 100).sort((a, b) => b.delay - a.delay || b.draw.id - a.draw.id).slice(0, 15);
     const hot = all.filter(r => r.after <= 100 && r.delay >= thr).length;
     const sorted = all.length && all.every(r => r.draw.order.every((x, i, a) => !i || a[i - 1] < x));
-    $('#sxInfo').innerHTML = `Από τις τελευταίες ${Math.min(101, all.length)} κληρώσεις, <b>${hot}</b> έχουν καθυστέρηση ≥ ${thr} (χωρίς ${sxSet.common}+ κοινά). Πατήστε μία για τις στήλες της.` +
+    $('#sxInfo').innerHTML = `Από τις τελευταίες ${Math.min(101, all.length)} κληρώσεις, <b>${hot}</b> έχουν καθυστέρηση ≥ ${thr} (χωρίς ${sxSet.common}+ κοινά). Πατήστε μία για τις στήλες της.<br><span style="font-size:12px">5+/20: σε πόσες από τις κληρώσεις που ακολούθησαν, μέσα στις τελευταίες 100, είχε 5 ή περισσότερα κοινά (στην τύχη περίπου 61%).</span>` +
       (sorted ? '<br><span style="color:var(--danger)">Προσοχή: το API δίνει τα νούμερα ταξινομημένα, όχι με σειρά εμφάνισης. Οι θέσεις 1–20 είναι η αύξουσα σειρά. Οι εγγυήσεις ισχύουν κανονικά.</span>' : '');
-    $('#sxDelays').innerHTML = '<tr><th>Κλήρωση</th><th>Ώρα</th><th>Καθυστ.</th><th>Μετά</th></tr>' + rows.map(r =>
-      `<tr class="tap${r.delay >= thr ? ' hot' : ''}" data-id="${r.draw.id}"><td>${r.draw.id}</td><td>${fmtTime(r.draw.time)}</td><td><b>${r.delay}</b></td><td>${r.after}</td></tr>`).join('');
+    $('#sxDelays').innerHTML = '<tr><th>Κλήρωση</th><th>Ώρα</th><th>Καθυστ.</th><th>Μετά</th><th>5+/20</th></tr>' + rows.map(r =>
+      `<tr class="tap${r.delay >= thr ? ' hot' : ''}" data-id="${r.draw.id}"><td>${r.draw.id}</td><td>${fmtTime(r.draw.time)}</td><td><b>${r.delay}</b></td><td>${r.after}</td><td>${r.f5}<span class="muted" style="font-size:11px">/${r.n5}</span></td></tr>`).join('');
     $('#sxDelays').querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => {
       const r = all.find(x => x.draw.id === +tr.dataset.id); sxSel = { draw: r.draw, src: r.draw, delay: r.delay, mode: sxSet.mode };
       $('#sxGen').hidden = false; renderGen(); $('#sxGen').scrollIntoView({ behavior: 'smooth', block: 'start' });
